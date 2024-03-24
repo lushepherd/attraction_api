@@ -1,4 +1,5 @@
 from init import db, ma
+from sqlalchemy import UniqueConstraint
 
 class User(db.Model):
     __tablename__ = "users"
