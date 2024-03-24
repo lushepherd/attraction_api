@@ -14,4 +14,7 @@ def create_app():
     bcrypt.init_app(app)
     jwt.init_app(app)
     
+    from controllers.cli_controller import db_commands
+    app.register_blueprint(db_commands)
+    print("Configured DATABASE_URI:", app.config['SQLALCHEMY_DATABASE_URI'])
     return app
