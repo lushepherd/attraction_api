@@ -1,6 +1,10 @@
+from datetime import datetime
+
 from flask import Blueprint
+
 from init import db, bcrypt
 from models.user import User
+from models.booking import Booking, booking_status
 
 db_commands = Blueprint('db', __name__)
 
@@ -34,4 +38,25 @@ def seed_tables():
     ]
     db.session.add_all(users)
     db.session.commit()
+    
+    bookings = [
+        Booking(
+            user=users[1],
+            attraction_name="The Great Pyramid",
+            booking_date=datetime(2024, 5, 20),
+            number_of_guests=2,
+            status=booking_status.CONFIRMED
+        ),
+        Booking(
+            user=users[1],
+            attraction_name="The Eiffel Tower",
+            booking_date=datetime(2024, 7, 25),
+            number_of_guests=4,
+            status=booking_status.REQUESTED
+        )
+        ]
+    
+    db.session.add_all(bookings)
+    db.session.commit()
+    
     print("Tables seeded")
