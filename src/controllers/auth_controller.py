@@ -83,7 +83,6 @@ def delete_account(user_id):
     current_user_id = get_jwt_identity()
     current_user = db.session.get(User, current_user_id)
 
-    # Ensure the current user is admin or trying to delete their own account
     if not current_user.is_admin and current_user_id != str(user_id):
         return {"error": "Unauthorised"}, 403
 
