@@ -21,13 +21,13 @@ class Booking(db.Model):
     status = db.Column(db.String, nullable=False, default=booking_status.REQUESTED)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    user = db.relationship('User', back_populates='bookings', cascade='all, delete')
-    attraction = db.relationship('Attraction', back_populates='bookings', cascade='all, delete')
+    user = db.relationship('User', back_populates='bookings')
+    attraction = db.relationship('Attraction', back_populates='bookings')
 
-class BookingSchema(ma.SQLAlchemyAutoSchema): 
+class BookingSchema(ma.Schema): 
     status = fields.String(validate=OneOf([booking_status.REQUESTED, booking_status.CONFIRMED, booking_status.CANCELLED]))
     user = fields.Nested('UserSchema', only=['name', 'email', 'phone'])
-    attraction = fields.Nested('AttractionSchema', only=['name', 'location', 'contact_phone', 'contact_email', 'opening_hours'])
+    attraction = fields.Nested('AttractionSchema', exclude=['description'])
 
     class Meta:
         fields = ('id', 'booking_date', 'number_of_guests', 'status', 'created_at')

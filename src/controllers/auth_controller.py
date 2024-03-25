@@ -10,7 +10,7 @@ from models.user import User, user_schema, users_schema
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
-@auth_bp.route("/register", methods=["POST"]) # /auth/register
+@auth_bp.route("/register", methods=["POST"]) # Register user
 def auth_register():
     try:
         body_data = request.get_json()
@@ -37,7 +37,7 @@ def auth_register():
         if err.orig.pgcode == errorcodes.UNIQUE_VIOLATION:
             return {"error": "Email already in use"}, 409
     
-@auth_bp.route("/login", methods=["POST"]) # /auth/login
+@auth_bp.route("/login", methods=["POST"]) # Login user
 def auth_login():
     body_data = request.get_json()
     stmt = db.select(User).filter_by(email=body_data.get("email"))
@@ -48,7 +48,7 @@ def auth_login():
     else:
         return {"error": "Invalid email or password"}, 401
 
-@auth_bp.route("/users", methods=["GET"])
+@auth_bp.route("/users", methods=["GET"]) # Admin can view all users
 @jwt_required()
 def get_all_users():
     current_user_id = get_jwt_identity()
@@ -59,7 +59,25 @@ def get_all_users():
     users = db.session.query(User).all()
     return users_schema.dump(users), 200
 
-@auth_bp.route("/update", methods=["PUT"])  # /auth/update
+@auth_bp.route("/user/<int:user_id>", methods=["GET"])
+@jwt_required()
+def get_user(user_id):
+    current_user_id = int(get_jwt_identity())  # Ensuring type consistency
+    current_user = db.session.get(User, current_user_id)
+
+    # Debugging output
+    print(f"Debug: Current User ID = {current_user_id}, Requested User ID = {user_id}, Is Admin = {current_user.is_admin}")
+
+    if current_user_id != user_id and not current_user.is_admin:
+        return {"error": "Access denied"}, 403
+
+    user = db.session.get(User, user_id)
+    if not user:
+        return {"error": "User not found"}, 404
+
+    return user_schema.dump(user), 200
+
+@auth_bp.route("/update", methods=["PUT"])  # Update user
 @jwt_required()
 def update_account():
     user_id = get_jwt_identity()
@@ -72,12 +90,15 @@ def update_account():
     user.name = body_data.get('name', user.name)
     user.email = body_data.get('email', user.email)
     user.phone = body_data.get('phone', user.phone)
+
     password = body_data.get('password')
+    if password:
+        user.password = bcrypt.generate_password_hash(password).decode('utf-8')
 
     db.session.commit()
     return user_schema.dump(user), 200
 
-@auth_bp.route("/delete/<int:user_id>", methods=["DELETE"])  # /auth/delete/<user_id>
+@auth_bp.route("/delete/<int:user_id>", methods=["DELETE"])  # Delete user
 @jwt_required()
 def delete_account(user_id):
     current_user_id = get_jwt_identity()
