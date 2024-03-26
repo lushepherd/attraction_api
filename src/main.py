@@ -27,4 +27,7 @@ def create_app():
     from controllers.booking_controller import booking_bp
     app.register_blueprint(booking_bp)
     
+    from controllers.attraction_controller import attraction_bp
+    app.register_blueprint(attraction_bp)
+    
     return app
