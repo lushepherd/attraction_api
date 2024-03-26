@@ -30,7 +30,7 @@ class BookingSchema(ma.Schema):
     attraction = fields.Nested('AttractionSchema', exclude=['description'])
 
     class Meta:
-        fields = ('id', 'booking_date', 'number_of_guests', 'status', 'created_at')
+        fields = ('id', 'booking_date', 'number_of_guests', 'status', 'created_at', 'user')
 
 booking_schema = BookingSchema()
 bookings_schema = BookingSchema(many=True)

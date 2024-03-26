@@ -24,7 +24,7 @@ def authorise_as_admin(fn):
         
     return wrapper
 
-@booking_bp.route('/new', methods=['POST'])
+@booking_bp.route('/new', methods=['POST']) # Create booking 
 @jwt_required()
 def create_booking():
     user_id = get_jwt_identity()
@@ -46,10 +46,10 @@ def create_booking():
 
 @booking_bp.route('/my_bookings', methods=['GET']) # Logged in user view bookings
 @jwt_required()
-def view_bookings():
+def view_my_bookings():
     user_id = get_jwt_identity()
     bookings = Booking.query.filter_by(user_id=user_id).all()
-    return booking_schema.dump(bookings)
+    return bookings_schema.dump(bookings)
 
 @booking_bp.route('/all', methods=['GET']) # Admin can view all bookings
 @jwt_required()
@@ -75,7 +75,7 @@ def update_booking(booking_id):
 
     return booking_schema.dump(booking)
 
-@booking_bp.route('/bookings/<int:booking_id>', methods=['DELETE']) # Logged in user can delete booking
+@booking_bp.route('/<int:booking_id>', methods=['DELETE']) # Logged in user can delete booking
 def delete_booking(booking_id):
     booking = Booking.query.get(booking_id)
     if booking is None:
