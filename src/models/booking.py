@@ -4,6 +4,7 @@ from marshmallow import fields
 from marshmallow.validate import OneOf
 
 from init import db, ma
+from models.attraction import Attraction
 
 class booking_status:
     REQUESTED = 'Requested'
@@ -27,10 +28,13 @@ class Booking(db.Model):
 class BookingSchema(ma.Schema): 
     status = fields.String(validate=OneOf([booking_status.REQUESTED, booking_status.CONFIRMED, booking_status.CANCELLED]))
     user = fields.Nested('UserSchema', only=['name', 'email', 'phone'])
-    attraction = fields.Nested('AttractionSchema', exclude=['description'])
+    attraction = fields.Nested('AttractionSchema', only=('name',))
+    booking_date = fields.DateTime('%d/%m/%Y')
+    created_at = fields.DateTime('%d/%m/%Y')
 
     class Meta:
-        fields = ('id', 'booking_date', 'number_of_guests', 'status', 'created_at', 'user')
+        
+        fields = ('id', 'attraction', 'booking_date', 'number_of_guests', 'status', 'created_at', 'user')
 
 booking_schema = BookingSchema()
 bookings_schema = BookingSchema(many=True)

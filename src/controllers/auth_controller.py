@@ -1,9 +1,7 @@
 from datetime import timedelta
 
 from flask import Blueprint, request
-from sqlalchemy.exc import IntegrityError
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-from psycopg2 import errorcodes
 
 from init import db, bcrypt
 from models.user import User, user_schema, users_schema
@@ -12,30 +10,21 @@ auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 @auth_bp.route("/register", methods=["POST"]) # Register user
 def auth_register():
-    try:
-        body_data = request.get_json()
+    body_data = request.get_json()
 
-        user = User(
-            name=body_data.get('name'),
-            email=body_data.get('email'),
-            phone=body_data.get('phone')
-        )
+    user = User(
+        name=body_data.get('name'),
+        email=body_data.get('email'),
+        phone=body_data.get('phone')
+    )
 
-        password = body_data.get('password')
-        if password:
-            user.password = bcrypt.generate_password_hash(password).decode('utf-8')
+    password = body_data.get('password')
+    if password:
+        user.password = bcrypt.generate_password_hash(password).decode('utf-8')
 
-        db.session.add(user)
-        db.session.commit()
-        return user_schema.dump(user), 201
-    
-    except IntegrityError as err:
-        print(err.orig.pgcode)
-        if err.orig.pgcode == errorcodes.NOT_NULL_VIOLATION:
-            return {"error": f"The {err.orig.diag.column_name} is required"}, 400
-        
-        if err.orig.pgcode == errorcodes.UNIQUE_VIOLATION:
-            return {"error": "Email already in use"}, 409
+    db.session.add(user)
+    db.session.commit()
+    return user_schema.dump(user), 201
     
 @auth_bp.route("/login", methods=["POST"]) # Login user
 def auth_login():
@@ -59,14 +48,11 @@ def get_all_users():
     users = db.session.query(User).all()
     return users_schema.dump(users), 200
 
-@auth_bp.route("/user/<int:user_id>", methods=["GET"])
+@auth_bp.route("/user/<int:user_id>", methods=["GET"]) # Account holder or admin can view single account/ their own account
 @jwt_required()
 def get_user(user_id):
-    current_user_id = int(get_jwt_identity())  # Ensuring type consistency
+    current_user_id = int(get_jwt_identity()) 
     current_user = db.session.get(User, current_user_id)
-
-    # Debugging output
-    print(f"Debug: Current User ID = {current_user_id}, Requested User ID = {user_id}, Is Admin = {current_user.is_admin}")
 
     if current_user_id != user_id and not current_user.is_admin:
         return {"error": "Access denied"}, 403

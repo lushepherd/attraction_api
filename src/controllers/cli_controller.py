@@ -6,6 +6,7 @@ from init import db, bcrypt
 from models.user import User
 from models.booking import Booking, booking_status
 from models.attraction import Attraction
+from models.review import Review
 
 db_commands = Blueprint('db', __name__)
 
@@ -81,6 +82,24 @@ def seed_tables():
     ]
 
     db.session.add_all(bookings)
+    db.session.commit()
+    
+    reviews = [
+        Review(
+            user=users[1],
+            attraction=attractions[0],  
+            rating=7,
+            comment="Was really busy, long queues",
+        ),
+        Review(
+            user=users[0],
+            attraction=attractions[1],  
+            rating=10,
+            comment="Best day of my life!",
+        ),      
+    ]
+
+    db.session.add_all(reviews)
     db.session.commit()
     
     print("Tables seeded")
