@@ -1,27 +1,12 @@
-import functools
-
 from flask import Blueprint, request, abort
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from init import db
 from models.attraction import Attraction, attraction_schema, attractions_schema 
-from models.booking import Booking, booking_schema, bookings_schema 
-from models.user import User
+
+from controllers.auth_utils import authorise_as_admin
 
 attraction_bp = Blueprint('attraction_bp', __name__, url_prefix='/attractions')
-
-def authorise_as_admin(fn):
-    @functools.wraps(fn)
-    def wrapper(*args, **kwargs):
-        user_id = get_jwt_identity()
-        stmt = db.select(User).filter_by(id=user_id)
-        user = db.session.scalar(stmt)
-        if user.is_admin:
-            return fn(*args, **kwargs)
-        else:
-            return {"error": "Not authorised. Admin access required."}, 403
-        
-    return wrapper
 
 @attraction_bp.route('/all', methods=['GET'])  # Show all attractions
 def get_all_attractions():
