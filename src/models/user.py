@@ -1,8 +1,8 @@
-from init import db, ma
-from marshmallow import fields, Schema, validates
-from marshmallow.validate import Length
+from marshmallow import fields
+from marshmallow.validate import Length, Email, Regexp
 from sqlalchemy import UniqueConstraint
 
+from init import db, ma
 class User(db.Model):
     __tablename__ = "users"
     
@@ -22,13 +22,21 @@ class User(db.Model):
     )
     
 class UserSchema(ma.Schema):
-    phone = fields.String(required=True, validate=Length(equal=10))
+    name = fields.String(required=True, validate=[
+        Length(min=1, error="Name cannot be empty."),
+        Regexp(regex=r'^[a-zA-Z\s-]+$', error="Name can't contain special characters.")
+    ])
+    email = fields.Email(required=True)
+    phone = fields.String(required=True, validate=Length(equal=10, error="Phone number must contain 10 characters."))
+    password = fields.String(required=True, validate=Length(min=8, error="Password must be at least 8 characters long."))
 
     bookings = fields.List(fields.Nested('BookingSchema', exclude=['user']))
     reviews = fields.List(fields.Nested('ReviewSchema', only=('attraction', 'rating', 'comment', 'created_at')))
+    
     class Meta:
         ordered = True
         fields = ('id', 'name', 'email', 'password', 'phone', 'is_admin', 'bookings', 'reviews')      
 
 user_schema = UserSchema(exclude=['password'])
 users_schema = UserSchema(many=True, exclude=['password'])     
+user_registration_schema = UserSchema()

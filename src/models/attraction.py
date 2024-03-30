@@ -1,8 +1,7 @@
 from sqlalchemy.orm import column_property
 from sqlalchemy import select, func
-from marshmallow import fields, Schema
+from marshmallow import fields
 from marshmallow.validate import Regexp
-
 
 from init import db, ma
 
@@ -13,6 +12,7 @@ class Attraction(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, nullable=False, unique=True)
+    ticket_price = db.Column(db.Float, nullable=False)
     description = db.Column(db.String, nullable=False)
     location = db.Column(db.String, nullable=False)
     contact_phone = db.Column(db.String, nullable=False)
@@ -42,7 +42,7 @@ class AttractionSchema(ma.Schema):
         return round(obj.average_rating, 1)
     class Meta:
 
-        fields = ('id', 'name', 'average_rating', 'location', 'description', 'contact_phone', 'contact_email', 'opening_hours', 'available_slots', 'reviews')
+        fields = ('id', 'name', 'average_rating', 'ticket_price', 'location', 'description', 'contact_phone', 'contact_email', 'opening_hours', 'available_slots', 'reviews')
 
 attraction_schema = AttractionSchema()
 attractions_schema = AttractionSchema(many=True)

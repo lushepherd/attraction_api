@@ -1,6 +1,5 @@
-from flask import Blueprint, request, abort
+from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from marshmallow.exceptions import ValidationError
 
 from init import db
 from models.user import User
@@ -32,6 +31,8 @@ def create_booking():
         number_of_guests=number_of_guests,
         status='Requested' 
     )
+    
+    booking.calculate_total_cost()
 
     attraction.available_slots -= number_of_guests
 
@@ -79,6 +80,7 @@ def update_booking(booking_id):
     if 'number_of_guests' in data:
         booking.number_of_guests = new_guest_count
         attraction.available_slots -= guest_difference  # Adjust available slots
+        booking.calculate_total_cost() # Recalculate cost
 
     if 'status' in data:
         booking.status = data['status']

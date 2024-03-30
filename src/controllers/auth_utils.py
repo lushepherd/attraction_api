@@ -1,7 +1,7 @@
 import functools
 from flask_jwt_extended import get_jwt_identity
-from models.user import User
 
+from models.user import User
 from init import db
 
 def authorise_as_admin(fn):

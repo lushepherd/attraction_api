@@ -25,7 +25,7 @@ def seed_tables():
     users = [
         User(
             name="Admin One",
-            email="admin1@gmail.com",
+            email="admin@email.com",
             password=bcrypt.generate_password_hash('password').decode('utf-8'),
             phone="0455555555",
             is_admin=True
@@ -44,6 +44,7 @@ def seed_tables():
     attractions = [
         Attraction(
             name="The Great Wall of China",
+            ticket_price=150,
             description="Built to protect the Chinese states against invasions",
             location="China",
             contact_phone="0456789011",
@@ -53,6 +54,7 @@ def seed_tables():
         ),
         Attraction(
             name="The Colosseum",
+            ticket_price=70,
             description="Oval amphitheatre in the centre of Rome, Italy.",
             location="Rome, Italy",
             contact_phone="0456733331",
@@ -70,6 +72,7 @@ def seed_tables():
             attraction=attractions[0],  
             booking_date=datetime(2024, 5, 20),
             number_of_guests=2,
+            total_cost=300,
             status=booking_status.CONFIRMED
         ),
         Booking(
@@ -77,6 +80,7 @@ def seed_tables():
             attraction=attractions[1],  
             booking_date=datetime(2024, 7, 25),
             number_of_guests=4,
+            total_cost=280,
             status=booking_status.REQUESTED
         )
     ]

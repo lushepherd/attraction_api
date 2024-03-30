@@ -1,26 +1,47 @@
 from datetime import timedelta
 
 from flask import Blueprint, request
+from marshmallow.exceptions import ValidationError
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 
 from init import db, bcrypt
-from models.user import User, user_schema, users_schema
+from models.user import User, user_schema, users_schema, user_registration_schema
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 @auth_bp.route("/register", methods=["POST"]) # Register user
 def auth_register():
+    """
+    Creates a new user account with details provided.
+
+    Expects a JSON payload with the keys 'name', 'email', 'phone', and 'password'. 
+    The 'password' is hashed before saving. If any of these keys are missing, 
+    it will return a not nullable error.
+
+    Returns:
+        Tuple: A tuple containing the serialized user object and the HTTP status code 201, indicating successful creation.
+
+    Example JSON:
+    {
+        "name": "John Doe",
+        "email": "john.doe@example.com",
+        "phone": "0412345678",
+        "password": "password"
+    }
+    """
     body_data = request.get_json()
+    
+    try:
+        validated_data = user_registration_schema.load(body_data)
+    except ValidationError as err:
+        return (err.messages), 400
 
     user = User(
-        name=body_data.get('name'),
-        email=body_data.get('email'),
-        phone=body_data.get('phone')
-    )
-
-    password = body_data.get('password')
-    if password:
-        user.password = bcrypt.generate_password_hash(password).decode('utf-8')
+        name=validated_data.get('name'),
+        email=validated_data.get('email'),
+        phone=validated_data.get('phone'),
+        password=bcrypt.generate_password_hash(validated_data.get('password')).decode('utf-8')
+    )  
 
     db.session.add(user)
     db.session.commit()
