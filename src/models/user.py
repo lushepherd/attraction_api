@@ -1,5 +1,6 @@
 from init import db, ma
-from marshmallow import fields
+from marshmallow import fields, Schema, validates
+from marshmallow.validate import Length
 from sqlalchemy import UniqueConstraint
 
 class User(db.Model):
@@ -21,8 +22,10 @@ class User(db.Model):
     )
     
 class UserSchema(ma.Schema):
+    phone = fields.String(required=True, validate=Length(equal=10))
+
     bookings = fields.List(fields.Nested('BookingSchema', exclude=['user']))
-    reviews = fields.List(fields.Nested('ReviewSchema', only=('rating', 'comment', 'created_at')))
+    reviews = fields.List(fields.Nested('ReviewSchema', only=('attraction', 'rating', 'comment', 'created_at')))
     class Meta:
         ordered = True
         fields = ('id', 'name', 'email', 'password', 'phone', 'is_admin', 'bookings', 'reviews')      

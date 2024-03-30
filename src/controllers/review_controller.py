@@ -9,16 +9,17 @@ from models.booking import Booking
 
 review_bp = Blueprint('review_bp', __name__, url_prefix='/review')
 
+
 def user_has_confirmed_booking(user_id, attraction_id):
     current_date = datetime.utcnow().date()
 
     booking = Booking.query.filter(
         Booking.user_id == user_id,
         Booking.attraction_id == attraction_id,
-        Booking.status == 'Confirmed',
+        Booking.status('confirmed'),
         Booking.booking_date < current_date
     ).first()
-    
+
     return booking is not None
 
 @review_bp.route('/create/<int:attraction_id>', methods=['POST']) # Create review

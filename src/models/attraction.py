@@ -1,6 +1,8 @@
 from sqlalchemy.orm import column_property
 from sqlalchemy import select, func
-from marshmallow import fields
+from marshmallow import fields, Schema
+from marshmallow.validate import Regexp
+
 
 from init import db, ma
 
@@ -10,7 +12,7 @@ class Attraction(db.Model):
     __tablename__ = "attractions"
     
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String, nullable=False)
+    name = db.Column(db.String, nullable=False, unique=True)
     description = db.Column(db.String, nullable=False)
     location = db.Column(db.String, nullable=False)
     contact_phone = db.Column(db.String, nullable=False)
@@ -31,6 +33,10 @@ class Attraction(db.Model):
 class AttractionSchema(ma.Schema):
     reviews = fields.List(fields.Nested('ReviewSchema', exclude=['attraction', 'id']))
     average_rating = fields.Method("get_average_rating")
+    opening_hours = fields.String(required=True, validate=Regexp(
+        r'^((2[0-3]|[01]?[0-9]):([0-5]?[0-9]))\s*-\s*((2[0-3]|[01]?[0-9]):([0-5]?[0-9]))$',
+        error="Opening hours must be in the format 'HH:MM - HH:MM' using 24-hour time."
+    ))
     
     def get_average_rating(self, obj):
         return round(obj.average_rating, 1)

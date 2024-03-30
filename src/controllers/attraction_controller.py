@@ -1,5 +1,5 @@
 from flask import Blueprint, request, abort
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required
 
 from init import db
 from models.attraction import Attraction, attraction_schema, attractions_schema 
@@ -16,7 +16,7 @@ def get_all_attractions():
 
 @attraction_bp.route('/<int:attraction_id>', methods=['Get']) # View one attraction
 def get_one_attraction(attraction_id): 
-    stmt = db.select(Attraction).filter_by(id=attraction_id) 
+    stmt = db.select(Attraction).filter_by(attraction_id=attraction_id) 
     attraction = db.session.scalar(stmt)
     if attraction:
         return attraction_schema.dump(attraction)
@@ -64,7 +64,7 @@ def delete_attraction(attraction_id):
 def update_attraction(attraction_id):
     body_data = attraction_schema.load(request.get_json(), partial=True)
 
-    stmt = db.select(Attraction).filter_by(id=attraction_id)
+    stmt = db.select(Attraction).filter_by(attraction_id=attraction_id)
     attraction = db.session.scalar(stmt)
     
     if attraction:

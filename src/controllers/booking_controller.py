@@ -15,7 +15,7 @@ booking_bp = Blueprint('booking_bp', __name__, url_prefix='/booking')
 def create_booking():
     user_id = get_jwt_identity()
     body_data = request.get_json()
-    attraction_id = body_data.get('attraction_id')
+    attraction_id = body_data.get('id')
     number_of_guests = body_data.get('number_of_guests')
 
     attraction = Attraction.query.get(attraction_id)
@@ -58,53 +58,51 @@ def get_all_bookings():
     bookings = db.session.scalars(stmt)
     return bookings_schema.dump(bookings)
 
-@booking_bp.route('/<int:booking_id>', methods=['PUT']) # Update booking as user
-@jwt_required()  
+@booking_bp.route('/<int:booking_id>', methods=['PUT'])
+@jwt_required()
+@authorise_as_admin
 def update_booking(booking_id):
-    current_user_id = get_jwt_identity()
-    current_user = User.query.get(current_user_id)
-
     booking = Booking.query.get(booking_id)
     if booking is None:
         return ({"error": "Booking not found"}), 404
 
-    if booking.user_id != current_user_id and not current_user.is_admin:
-        return ({"error": "Access denied"}), 403
-
     data = request.json
+    new_guest_count = data.get('number_of_guests', booking.number_of_guests)
+    guest_difference = new_guest_count - booking.number_of_guests
+
+    attraction = Attraction.query.get(booking.attraction_id)
+    if attraction.available_slots - guest_difference < 0:
+        return ({"error": "Not enough available slots for the updated number of guests."}), 400
 
     if 'booking_date' in data:
         booking.booking_date = data['booking_date']
     if 'number_of_guests' in data:
-        booking.number_of_guests = data['number_of_guests']
+        booking.number_of_guests = new_guest_count
+        attraction.available_slots -= guest_difference  # Adjust available slots
 
-    if current_user.is_admin and 'status' in data:
+    if 'status' in data:
         booking.status = data['status']
 
-    db.session.commit()
+    try:
+        db.session.commit()
+        return booking_schema.dump(booking), 200
+    except Exception as e:
+        db.session.rollback()
+        return ({"error": "Failed to update booking. Please try again."}), 500
 
-    return booking_schema.dump(booking), 200
-
-@booking_bp.route('/<int:booking_id>', methods=['DELETE']) # Delete booking as user
+@booking_bp.route('/<int:booking_id>', methods=['DELETE']) # Delete booking as admin
 @jwt_required()
+@authorise_as_admin
 def delete_booking(booking_id):
-    current_user_id = get_jwt_identity()
     booking = Booking.query.get(booking_id)
     
     if booking is None:
         return ({'error': 'Booking not found'}), 404
     
-    current_user = User.query.get(current_user_id)
-    if booking.user_id != current_user_id and not current_user.is_admin:
-        return ({"error": "Access denied"}), 403
-
-    if booking.status != "Requested":
-        return ({"error": "Booking already confirmed, please call attraction directly to cancel."}), 400
-    
     attraction = Attraction.query.get(booking.attraction_id)
     if attraction:
         attraction.available_slots += booking.number_of_guests
-    
+
     db.session.delete(booking)
     db.session.commit()
     return ({'message': 'Booking deleted successfully'}), 200
