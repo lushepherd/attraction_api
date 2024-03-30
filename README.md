@@ -131,6 +131,269 @@ An Object-Relational Mapping (ORM) tool allows developers to manage and interact
 
 ### 5 - Document all endpoints for your API
 
+### Users
+
+#### Register User Endpoint - Create a new user account with details provided by client.
+
+<b>HTTP Method</b>: POST<br>
+<b>URL:</b>
+http://localhost:8080/auth/register<br>
+<b>Request body</b>: JSON object with the following keys:
+
+name: Users full name. Must contain only letters, spaces, and dashes.
+email: Users email address. Must be in a valid email format.
+phone: Users phone number. Must contain exactly 10 characters.
+password: Users desired password. Must contain a minimum of 8 characters.
+
+- Example:
+```json
+{
+  "name": "John Smith",
+  "email": "smith.john@email.com",
+  "phone": "0412345600",
+  "password": "password"
+}
+```
+<b>Success Response</b>
+- Code 201 (created)
+- Returns created user object (without the password)
+
+Example Success Response:
+```json
+{
+  "id": 4,
+  "name": "John Smith",
+  "email": "smith.john@email.com",
+  "phone": "0412345600",
+  "is_admin": false,
+  "bookings": [],
+  "reviews": []
+}
+```
+Error Responses
+Validation Error
+- Code: 400 Bad Request
+- Content: Error message detailing missing or invalid fields.
+Example Validation Error Response:
+```json
+{
+  "name": ["Name is required."],
+  "email": ["Invalid email format."]
+}
+```
+Integrity Errors
+- Code: 400 Bad Request 
+ - Content: A message indicating that a required field is missing or invalid.
+ - Example NOT NULL Violation Response and Validation Error Response:
+```json
+{
+  "error": "The email is required"
+}
+```
+```json
+{
+  "password": ["Password must be at least 8 characters long."]
+}
+```
+Unique Violations
+ - Code: 409 Conflict (for UNIQUE violations)
+- Content: A message indicating that the provided email address or phone number is already in use.
+ - Example UNIQUE Violation Response (Email, Phone):
+```json
+{
+  "error": "Email address already in use"
+}
+```
+```json
+{
+  "error": "Phone number already in use"
+}
+```
+
+<b>Further Notes</b><br>
+- All fields (name, email, phone, password) are required. If any are missing or don't meet the validation criteria, a 400 Bad Request error will be returned with details.
+- The password is hashed for security before being stored in the database.
+- The email address and phone number must be unique. Attempting to register with an email address or phone number that is already in use will result in a 409 Conflict error.
+
+#### Login User Endpoint - Log in an already registered user
+
+<b>HTTP Method</b>: POST<br>
+<b>URL:</b> http://localhost:8080/auth/login
+<br>
+<b>Authentication Required:</b> No
+<b>Request body</b>: JSON object with the following keys:
+
+email: The user's email address.<br>
+password: The user's password.
+
+- Example:
+```json
+{
+  "email": "smith.john@email.com",
+  "password": "password"
+}
+```
+<b>Success Response</b>
+- Code 200 (OK)
+- Returns email, token, and if the user is an admin or not
+
+Example Success Response:
+```json
+{
+  "email": "smith.john@email.com",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTcxMTc4NjA5NCwianRpIjoiZGE5NGE2YWYtM2QyYS00Njk1LTk2ZWMtOTE5YzE5NzFiMjRmIiwidHlwZSI6ImFjY2VzcyIsInN1YiI6IjQiLCJuYmYiOjE3MTE3ODYwOTQsImNzcmYiOiIzNmI2OTMxNy1kYTAxLTQxZTUtOGY0Ny1iOGNmNjk1ZTgxNjkiLCJleHAiOjE3MTE4NzI0OTR9.dzIOHMSoiItH098hUfX2lZfX57eRzsrtj0oitgHujBU",
+  "is_admin": false
+}
+```
+Error Response
+1. Code: 401 Unauthorized (email or password incorrect)
+    .
+Example Validation Error Response:
+```json
+{
+  "error": "Invalid email or password"
+}
+```
+#### View All Users (admin only)
+
+<b>HTTP Method</b>: GET<br>
+<b>URL:</b> http://localhost:8080/auth/users
+<br>
+<b>Authentication Required:</b> Yes, a valid JWT token must be used in Authorisation header.
+<b>Permissions:</b> Admin only.
+
+<b>Success Response</b>
+- Code 200 (OK)
+- Returns list of all registered users, their bookings and their reviews.
+
+Example Success Response:
+```json
+[
+  {
+    "id": 1,
+    "name": "Admin One",
+    "email": "admin@email.com",
+    "phone": "0455555555",
+    "is_admin": true,
+    "bookings": [],
+    "reviews": [
+      {
+        "attraction": {
+          "name": "The Colosseum"
+        },
+        "rating": 10,
+        "comment": "Best day of my life!",
+        "created_at": "30/03/2024"
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "name": "User One",
+    "email": "userone@email.com",
+    "phone": "0466666666",
+    "is_admin": false,
+    "bookings": [
+      {
+        "id": 1,
+        "attraction": {
+          "name": "The Great Wall of China"
+        },
+        "booking_date": "20/05/2024",
+        "number_of_guests": 2,
+        "total_cost": 300.0,
+        "status": "Confirmed",
+        "created_at": "30/03/2024"
+      }  
+```
+Error Response
+1. Code: 401 Unauthorized (user not authenticated or token is invalid)
+
+Example Validation Error Response:
+```json
+{
+    "error": "Not authorised. Admin access required."
+}
+```
+#### View Account
+
+<b>HTTP Method</b>: GET<br>
+<b>URL:</b> http://localhost:8080/auth/users/3 (number user ID)
+<br>
+<b>Authentication Required:</b> Yes, a valid JWT token must be used in Authorisation header.
+<b>Permissions:</b> Account user can view their own account, admin can view any account.
+
+<b>Success Response</b>
+- Code 200 (OK)
+
+Example Success Response:
+
+```json
+{
+  "id": 4,
+  "name": "John Smith",
+  "email": "smith.john@email.com",
+  "phone": "0412345600",
+  "is_admin": false,
+  "bookings": [],
+  "reviews": []
+}
+```
+Error Responses
+
+- Code: 401 Unauthorized (user is not authenticated or token is invalid)
+- Code: 403 Forbidden (user is not account holder or admin)
+
+Example:
+```json
+{
+    "error": "Access denied"
+}
+```
+
+- Code: 404 Not Found (user with specified ID doesn't exist)
+
+Example:
+```json
+{
+    "error": "User not found"
+}
+```
+
+#### Update Account
+
+#### Delete Account
+
+#### Create New Booking
+
+#### View My Bookings
+
+#### Update Booking (admin only)
+
+#### Delete Booking (admin only)
+
+#### View All Bookings (admin only)
+
+#### Create Attraction (admin only)
+
+#### Update Attraction (admin only)
+
+#### Delete Attraction (admin only)
+
+#### View All Attractions
+
+#### View One Attraction
+
+#### Create A Review
+
+#### View My Reviews
+
+#### Update Review
+
+#### Delete Reviews
+
+#### View All Reviews For a Particular Attraction
+
 ### 6 - An ERD for your app
 
 ### 7 - Detail any third party services that your app will use
