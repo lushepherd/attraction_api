@@ -8,7 +8,13 @@
 - [Q2](#2---why-is-it-a-problem-that-needs-solving)
 - [Q3](#3---why-have-you-chosen-this-database-system-what-are-the-drawbacks-compared-to-others)
 - [Q4](#4---identify-and-discuss-the-key-functionalities-and-benefits-of-an-orm)
-- [Q5](#5---document-all-endpoints-for-your-api)
+- [Q5- Endpoint Documentation](#5---document-all-endpoints-for-your-api)
+    - [Register user](#register-user-endpoint---create-a-new-user-account-with-details-provided-by-client)
+    - [Login user](#login-user-endpoint---log-in-an-already-registered-user)
+    - [View all users (as admin)](#view-all-users-admin-only)
+    - [View one user account (account holder or admin)](#view-account)
+    - [Update Account](#update-account)
+    - [Delete Account (account holder or admin)](#delete-account)
 - [Q6](#6---an-erd-for-your-app)
 - [Q7](#7---detail-any-third-party-services-that-your-app-will-use)
 - [Q8](#8---describe-your-projects-models-in-terms-of-the-relationships-they-have-with-each-other)
@@ -140,12 +146,12 @@ An Object-Relational Mapping (ORM) tool allows developers to manage and interact
 http://localhost:8080/auth/register<br>
 <b>Request body</b>: JSON object with the following keys:
 
-name: Users full name. Must contain only letters, spaces, and dashes.
-email: Users email address. Must be in a valid email format.
-phone: Users phone number. Must contain exactly 10 characters.
-password: Users desired password. Must contain a minimum of 8 characters.
+- name: Users full name. Must contain only letters, spaces, and dashes.
+- email: Users email address. Must be in a valid email format.
+- phone: Users phone number. Must contain exactly 10 characters.
+- password: Users desired password. Must contain a minimum of 8 characters.
 
-- Example:
+Example:
 ```json
 {
   "name": "John Smith",
@@ -223,10 +229,10 @@ Unique Violations
 <b>Authentication Required:</b> No
 <b>Request body</b>: JSON object with the following keys:
 
-email: The user's email address.<br>
-password: The user's password.
+- email: The user's email address
+- password: The user's password
 
-- Example:
+Example:
 ```json
 {
   "email": "smith.john@email.com",
@@ -362,8 +368,92 @@ Example:
 
 #### Update Account
 
+<b>HTTP Method</b>: PUT<br>
+<b>URL:</b> http://localhost:8080/auth/update 
+<br>
+<b>Authentication Required:</b> Yes, a valid JWT token must be used in Authorisation header.
+<b>Permissions:</b> Only account user can update their account.
+
+<b>Request Body:</b> JSON object containing any of the fields that the user wishes to update: name, email, phone, and password. Fields not provided will retain their existing values. Follows same data validation as "register user".
+
+- name: Users full name. Must contain only letters, spaces, and dashes.
+- email: Users email address. Must be in a valid email format.
+- phone: Users phone number. Must contain exactly 10 characters.
+- password: Users desired password. Must contain a minimum of 8 characters.
+
+Example:
+```json
+{
+  "email": "mrjohnsmith@email.com"
+}
+```
+<b>Success Response</b>
+- Code 200 (OK)
+Example Success Response:
+```json
+{
+  "id": 4,
+  "name": "John Smith",
+  "email": "mrjohnsmith@email.com",
+  "phone": "0412345600",
+  "is_admin": false,
+  "bookings": [],
+  "reviews": []
+}
+```
+Error Responses
+
+- Code: 401 Unauthorized (user is not authenticated or token is invalid)
+- Code: 404 Not Found (user with specified JWT doesn't exist)
+- Code: 400 Bad Request (detailed error message will indicate which fields are invalid or improperly formatted)
+
+Example:
+```json
+{
+    "error": "User not found"
+}
+```
+```json
+{
+  "name": [
+    "Name can't contain special characters."
+  ]
+}
+```
 #### Delete Account
 
+<b>HTTP Method</b>: DELETE<br>
+<b>URL:</b> http://localhost:8080/auth/delete/2 (number is user id of account to be deleted) 
+<br>
+<b>Authentication Required:</b> Yes, a valid JWT token must be used in Authorisation header.
+<b>Permissions:</b> Admins can delete any user account, user can delete their own account.
+
+<b>Success Response:</b>
+Code 200 (OK)<br>
+Example Success Response:
+```json
+{
+    "message": "User deleted successfully"
+}
+```
+Error Responses
+- Code 401 Unauthorized: user is not authenticated or the token is invalid
+- Code 403 Forbidden: requesting user is not authorised to delete the account.
+
+Example:
+```json
+{
+    "error": "Unauthorised"
+}
+```
+- Code 404 Not Found: user with specified ID does not exist.
+
+Example:
+```json
+{
+    "error": "User not found"
+}
+```
 #### Create New Booking
 
 #### View My Bookings

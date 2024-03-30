@@ -5,7 +5,7 @@ from marshmallow.exceptions import ValidationError
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 
 from init import db, bcrypt
-from models.user import User, user_schema, users_schema, user_registration_schema
+from models.user import User, UserSchema, user_schema, users_schema, user_registration_schema
 from controllers.auth_utils import authorise_as_admin
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
@@ -152,39 +152,104 @@ def get_user(user_id):
 @auth_bp.route("/update", methods=["PUT"])  # Update user
 @jwt_required()
 def update_account():
+    """
+    Updates the account details of the current user. The user must be authenticated via JWT.
+
+    Allows the user to update their name, email, phone number, and password. Only the fields provided
+    in the request body will be updated; omitted fields will retain their current values.
+
+    Requires JWT authentication to identify the requesting user.
+
+    Returns:
+        - JSON object containing the updated user details with a 200 OK status.
+        - A 404 Not Found error if the user with the specified JWT identity does not exist.
+
+    Example request body:
+    {
+        "name": "New Name",
+        "email": "new.email@email.com",
+        "phone": "0412345699",
+        "password": "newpassword"
+    }
+    """
+    # Get user ID from the JWT token
     user_id = get_jwt_identity()
     body_data = request.get_json()
 
+    # Retrieve the current user from the database
     user = db.session.get(User, user_id)
     if not user:
+        # Return an error if the user does not exist
         return {"error": "User not found"}, 404
 
-    user.name = body_data.get('name', user.name)
-    user.email = body_data.get('email', user.email)
-    user.phone = body_data.get('phone', user.phone)
+    try:
+        # Validate incoming data with UserSchema, allowing partial updates.
+        # This ensures that any fields provided in the request meet the validation criteria
+        # defined in the UserSchema, such as minimum length for passwords or valid email format.
+        validated_data = UserSchema(partial=True).load(body_data)
+    except ValidationError as err:
+        # If validation fails, return the specific validation error messages.
+        return (err.messages), 400
 
-    password = body_data.get('password')
-    if password:
-        user.password = bcrypt.generate_password_hash(password).decode('utf-8')
+    # Update user fields with validated data. Only fields that are provided in the request
+    # and pass validation are updated. This ensures data integrity and adherence to 
+    # validation rules even during updates.
+    if 'name' in validated_data:
+        user.name = validated_data['name']
+    if 'email' in validated_data:
+        user.email = validated_data['email']
+    if 'phone' in validated_data:
+        user.phone = validated_data['phone']
+    if 'password' in validated_data and validated_data['password']:
+        # The new password is hashed before storing to maintain security
+        user.password = bcrypt.generate_password_hash(validated_data['password']).decode('utf-8')
 
+    # Commit changes to the database
     db.session.commit()
+
+    # Return updated user details
     return user_schema.dump(user), 200
 
 @auth_bp.route("/delete/<int:user_id>", methods=["DELETE"])  # Delete user
 @jwt_required()
 def delete_account(user_id):
-    current_user_id = get_jwt_identity()
-    current_user = db.session.get(User, current_user_id)
+    """
+    Deletes a specific user by their user ID. Can be accessed by an admin or 
+    the user themselves wishing to delete their account.
 
+    Requires JWT authentication. The token must belong to an admin or the user whose account 
+    is being deleted.
+
+    Returns:
+        - A success message with a 200 OK status if the user was deleted.
+        - A 401 Unauthorized error if a user is trying to delete an account that is not theirs, or an account that doesn't exist
+        - A 403 Forbidden error if the requesting user is not authorised.
+        - A 404 Not Found error if the user with the specified ID does not exist.
+    """
+    # Retrieve the ID of the current user from the JWT token
+    current_user_id = get_jwt_identity()
+    # Fetch user from database
+    current_user = db.session.get(User, current_user_id)
+    
+    # Check if current_user is None
+    if current_user is None:
+        return {"error": "Authentication failed"}, 401
+
+    # Check if the user is authorised to delete the account (either admin or the user)
     if not current_user.is_admin and current_user_id != str(user_id):
         return {"error": "Unauthorised"}, 403
 
+    # Find the user to be deleted in the database
     user_to_delete = db.session.get(User, user_id)
     if not user_to_delete:
+        # Return an error if no user is found with the provided ID
         return {"error": "User not found"}, 404
 
+    # Delete the user from the database and commit the changes
     db.session.delete(user_to_delete)
     db.session.commit()
+    
+    # Return a success message
     return {"message": "User deleted successfully"}, 200
 
 
