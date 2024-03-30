@@ -22,13 +22,13 @@ class User(db.Model):
     )
     
 class UserSchema(ma.Schema):
-    name = fields.String(required=True, validate=[
+    name = fields.String(validate=[
         Length(min=1, error="Name cannot be empty."),
         Regexp(regex=r'^[a-zA-Z\s-]+$', error="Name can't contain special characters.")
     ])
-    email = fields.Email(required=True)
-    phone = fields.String(required=True, validate=Length(equal=10, error="Phone number must contain 10 characters."))
-    password = fields.String(required=True, validate=Length(min=8, error="Password must be at least 8 characters long."))
+    email = fields.Email()
+    phone = fields.String(validate=Length(equal=10, error="Phone number must contain 10 characters."))
+    password = fields.String(validate=Length(min=8, error="Password must be at least 8 characters long."))
 
     bookings = fields.List(fields.Nested('BookingSchema', exclude=['user']))
     reviews = fields.List(fields.Nested('ReviewSchema', only=('attraction', 'rating', 'comment', 'created_at')))

@@ -1,12 +1,11 @@
 from datetime import timedelta
 
-from flask import Blueprint, request
-from marshmallow.exceptions import ValidationError
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask import Blueprint, request, abort, g
+from flask_jwt_extended import create_access_token, jwt_required
 
 from init import db, bcrypt
 from models.user import User, UserSchema, user_schema, users_schema, user_registration_schema
-from controllers.auth_utils import authorise_as_admin
+from controllers.auth_utils import authorise_as_admin, hash_password, validate_data, load_current_user
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -30,32 +29,30 @@ def auth_register():
         "phone": "0412345678",
         "password": "password"
     }
+    
+    Validation rules: 
+    - name: Must contain only letters, spaces, and dashes.
+    - email: Must be in a valid email format.
+    - phone: Must contain exactly 10 characters.
+    - password: Must contain a minimum of 8 characters
     """
     # Extract request data, expecting JSON containing 'email', 'password', 'name', and 'phone'
     body_data = request.get_json()
     
-    # Validate incoming JSON data against user registration schema
-    # Checks for required fields, formatting, other validation rules applied
-    try:
-        validated_data = user_registration_schema.load(body_data)
-    except ValidationError as err:
-        return (err.messages), 400
-
     # Creates new user with validated data
-    # Note: Password is hashed for security
+    # Password is hashed for security
+    validated_data = validate_data(user_registration_schema, body_data)
+
     user = User(
         name=validated_data.get('name'),
         email=validated_data.get('email'),
         phone=validated_data.get('phone'),
-        password=bcrypt.generate_password_hash(validated_data.get('password')).decode('utf-8')
+        password=hash_password(validated_data['password'])
     )  
 
-    # Adds new user to session and commits to DB (saves new user)
     db.session.add(user)
     db.session.commit()
     
-    # Serialises newly created user (excluding the password) and returns with a 201 Created status
-    # Confirms to user account creation
     return user_schema.dump(user), 201
     
 @auth_bp.route("/login", methods=["POST"]) # Login a registered user
@@ -79,25 +76,20 @@ def auth_login():
     """
     # Extract request data, expecting JSON containing 'email' and 'password'
     body_data = request.get_json()
-    # Query the database for a user with the provided email
+    
     stmt = db.select(User).filter_by(email=body_data.get("email"))
-    # Execute the query and fetch the first result (if any)
     user = db.session.scalar(stmt)
     
     # Check if a user was found and the password matches hashed password in database
-    if user and bcrypt.check_password_hash(user.password, body_data.get("password")):
-        # Generate a JWT token for the authenticated user, setting the token's expiry to 1 day
+    # Generate a JWT token for the authenticated user, setting the token's expiry to 1 day
+    if user and bcrypt.check_password_hash(user.password, body_data["password"]):
         token = create_access_token(identity=str(user.id), expires_delta=timedelta(days=1))
-        # Return specified fields in response
         return {"email": user.email, "token": token, "is_admin": user.is_admin}
     else:
-        # If either no user found or password is incorrect, return an error
-        return {"error": "Invalid email or password"}, 401
+        abort(401)
 
 @auth_bp.route("/users", methods=["GET"]) # View all users (as an admin)
-# Ensure the user is logged in and a valid JWT token is provided
-@jwt_required()
-# Ensure the user has admin privileges  
+@jwt_required() 
 @authorise_as_admin 
 def get_all_users():
     """
@@ -112,11 +104,11 @@ def get_all_users():
     # Retrieve all users from the database
     users = db.session.query(User).all()
     
-    # Serialise and return the list of users
     return users_schema.dump(users), 200
 
 @auth_bp.route("/user/<int:user_id>", methods=["GET"]) # Account holder or admin can view single account/ their own account
 @jwt_required()
+@load_current_user
 def get_user(user_id):
     """
     Retrieves details of a specific user by user ID. Can be accessed by 
@@ -130,27 +122,22 @@ def get_user(user_id):
         - A 403 error if the requesting user is neither the account holder nor an admin.
         - A 404 Not Found error if the user with the specified ID does not exist.
     """
-    # Obtain ID of the current user from the JWT token
-    current_user_id = int(get_jwt_identity())
-    # Fetch the current user from database
-    current_user = db.session.get(User, current_user_id)
+    current_user = g.current_user
 
-    # Check if the current user is trying to access their own data or is an admin
-    if current_user_id != user_id and not current_user.is_admin:
-        # Access is denied if neither condition is met
-        return {"error": "Access denied"}, 403
+    # Check if the current user is trying to access their own data or is an admin, if not return error
+    if current_user.id != user_id and not current_user.is_admin:
+        abort(403)
 
     # Retrieve the user object for the specified user_id
     user = db.session.get(User, user_id)
     if not user:
-        # If no user is found with provided ID, return an error
-        return {"error": "User not found"}, 404
+        abort(404)
 
-    # Serialise and return the user object
     return user_schema.dump(user), 200
 
 @auth_bp.route("/update", methods=["PUT"])  # Update user
 @jwt_required()
+@load_current_user
 def update_account():
     """
     Updates the account details of the current user. The user must be authenticated via JWT.
@@ -171,47 +158,35 @@ def update_account():
         "phone": "0412345699",
         "password": "newpassword"
     }
+    Same Validation rules as "Register User" endpoint: 
+    - name: Must contain only letters, spaces, and dashes.
+    - email: Must be in a valid email format.
+    - phone: Must contain exactly 10 characters.
+    - password: Must contain a minimum of 8 characters
     """
-    # Get user ID from the JWT token
-    user_id = get_jwt_identity()
     body_data = request.get_json()
 
-    # Retrieve the current user from the database
-    user = db.session.get(User, user_id)
-    if not user:
-        # Return an error if the user does not exist
-        return {"error": "User not found"}, 404
+    user = g.current_user
+    
+    validated_data = validate_data(UserSchema(partial=True), body_data)
 
-    try:
-        # Validate incoming data with UserSchema, allowing partial updates.
-        # This ensures that any fields provided in the request meet the validation criteria
-        # defined in the UserSchema, such as minimum length for passwords or valid email format.
-        validated_data = UserSchema(partial=True).load(body_data)
-    except ValidationError as err:
-        # If validation fails, return the specific validation error messages.
-        return (err.messages), 400
+    if 'password' in validated_data:
+        validated_data['password'] = hash_password(validated_data['password'])
 
-    # Update user fields with validated data. Only fields that are provided in the request
-    # and pass validation are updated. This ensures data integrity and adherence to 
-    # validation rules even during updates.
-    if 'name' in validated_data:
-        user.name = validated_data['name']
-    if 'email' in validated_data:
-        user.email = validated_data['email']
-    if 'phone' in validated_data:
-        user.phone = validated_data['phone']
-    if 'password' in validated_data and validated_data['password']:
-        # The new password is hashed before storing to maintain security
-        user.password = bcrypt.generate_password_hash(validated_data['password']).decode('utf-8')
+    # Iterates over each key-value pair in the validated data.
+    # For each pair, it updates the corresponding attribute of the user object with the new value.
+    # This dynamic allows for updating only the fields provided in the request body,
+    # supporting partial updates. If a new password is provided, it's hashed before being set.
+    for key, value in validated_data.items():
+        setattr(user, key, value)
 
-    # Commit changes to the database
     db.session.commit()
 
-    # Return updated user details
     return user_schema.dump(user), 200
 
 @auth_bp.route("/delete/<int:user_id>", methods=["DELETE"])  # Delete user
 @jwt_required()
+@load_current_user
 def delete_account(user_id):
     """
     Deletes a specific user by their user ID. Can be accessed by an admin or 
@@ -226,30 +201,21 @@ def delete_account(user_id):
         - A 403 Forbidden error if the requesting user is not authorised.
         - A 404 Not Found error if the user with the specified ID does not exist.
     """
-    # Retrieve the ID of the current user from the JWT token
-    current_user_id = get_jwt_identity()
-    # Fetch user from database
-    current_user = db.session.get(User, current_user_id)
+    current_user = g.current_user
     
-    # Check if current_user is None
-    if current_user is None:
-        return {"error": "Authentication failed"}, 401
-
     # Check if the user is authorised to delete the account (either admin or the user)
-    if not current_user.is_admin and current_user_id != str(user_id):
-        return {"error": "Unauthorised"}, 403
+    # If not, return an error
+    if not current_user.is_admin and current_user.id != (user_id):
+        abort(403)
 
-    # Find the user to be deleted in the database
+    # Find the user to be deleted in the database or return an error
     user_to_delete = db.session.get(User, user_id)
     if not user_to_delete:
-        # Return an error if no user is found with the provided ID
-        return {"error": "User not found"}, 404
+        abort(404)
 
-    # Delete the user from the database and commit the changes
     db.session.delete(user_to_delete)
     db.session.commit()
     
-    # Return a success message
     return {"message": "User deleted successfully"}, 200
 
 

@@ -27,6 +27,10 @@ def create_app():
     def validation_error(error):
         return {"error": error.messages}, 400
     
+    @app.errorhandler(401)
+    def unauthorised_error(err):
+        return ({"error": str(err)}), 401
+    
     @app.errorhandler(403)
     def forbidden(err):
         return {"error": str(err)}, 403
