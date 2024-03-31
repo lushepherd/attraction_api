@@ -1,5 +1,7 @@
 # Lucy Shepherd T2A2 - API 
 
+[GITHUB- Attraction API](https://github.com/lushepherd/attraction_api)
+
 ## Menu
 
 - [API Setup and Installation](#api-setup-and-installation)
@@ -156,10 +158,13 @@ An Object-Relational Mapping (ORM) tool allows developers to manage and interact
 
 #### Register User Endpoint - Create a new user account with details provided by client.
 
-<b>HTTP Method</b>: POST<br>
-<b>URL:</b>
-http://localhost:8080/auth/register<br>
-<b>Request body</b>: JSON object with the following keys:
+- <b>HTTP Method</b>: POST<br>
+- <b>URL:</b> /auth/register<br>
+- No permissions required
+
+Allows a user to register an account.
+
+Request body: JSON object with the following keys:
 
 - name: Users full name. Must contain only letters, spaces, and dashes.
 - email: Users email address. Must be in a valid email format.
@@ -182,10 +187,11 @@ Example:
 Example Success Response:
 ```json
 {
-  "id": 4,
+  "id": 3,
   "name": "John Smith",
   "email": "smith.john@email.com",
   "phone": "0412345600",
+  "is_locked_out": false,
   "is_admin": false,
   "bookings": [],
   "reviews": []
@@ -249,13 +255,16 @@ Unique Violations
 - All fields (name, email, phone, password) are required. If any are missing or don't meet the validation criteria, a 400 Bad Request error will be returned with details.
 - The password is hashed for security before being stored in the database.
 - The email address and phone number must be unique. Attempting to register with an email address or phone number that is already in use will result in a 409 Conflict error.
+- User can't see the is_admin or is_locked_out flags
 
 #### Login User Endpoint - Log in an already registered user
 
-<b>HTTP Method</b>: POST<br>
-<b>URL:</b> http://localhost:8080/auth/login
-<br>
-<b>Authentication Required:</b> No
+- <b>HTTP Method</b>: POST<br>
+- <b>URL:</b> /auth/login<br>
+- <b>Authentication Required:</b> No<br>
+
+Login a user that already has an account.
+
 <b>Request body</b>: JSON object with the following keys:
 
 - email: The user's email address
@@ -291,11 +300,12 @@ Example Validation Error Response:
 ```
 #### View All Users (admin only)
 
-<b>HTTP Method</b>: GET<br>
-<b>URL:</b> http://localhost:8080/auth/users
-<br>
-<b>Authentication Required:</b> Yes, a valid JWT token must be used in Authorisation header.
-<b>Permissions:</b> Admin only.
+- <b>HTTP Method</b>: GET<br>
+- <b>URL:</b> /auth/users<br>
+- <b>Authentication Required:</b> Yes, a valid JWT token must be used in Authorisation header.
+- <b>Permissions:</b> Admin only.
+
+Allows an admin to retrieve all users on the database along with their reviews and bookings. Admin can also see if another user is admin or if they are locked out of their account.
 
 <b>Success Response</b>
 - Code 200 (OK)
@@ -309,37 +319,71 @@ Example Success Response:
     "name": "Admin One",
     "email": "admin@email.com",
     "phone": "0455555555",
+    "is_locked_out": false,
     "is_admin": true,
-    "bookings": [],
+    "bookings": [
+      {
+        "id": 2,
+        "attraction": {
+          "name": "Story Bridge Adventure Climb"
+        },
+        "booking_date": "25/07/2024",
+        "number_of_guests": 4,
+        "total_cost": 280.0,
+        "status": "Requested",
+        "created_at": "31/03/2024"
+      }
+    ],
     "reviews": [
       {
+        "id": 2,
         "attraction": {
-          "name": "The Colosseum"
+          "name": "Story Bridge Adventure Climb"
         },
         "rating": 10,
         "comment": "Best day of my life!",
-        "created_at": "30/03/2024"
+        "created_at": "31-03-2024",
+        "user": {
+          "name": "Admin One"
+        }
       }
     ]
   },
   {
     "id": 2,
     "name": "User One",
-    "email": "userone@email.com",
+    "email": "user1@email.com",
     "phone": "0466666666",
+    "is_locked_out": false,
     "is_admin": false,
     "bookings": [
       {
         "id": 1,
         "attraction": {
-          "name": "The Great Wall of China"
+          "name": "The Wheel of Brisbane"
         },
-        "booking_date": "20/05/2024",
+        "booking_date": "20/05/2023",
         "number_of_guests": 2,
-        "total_cost": 300.0,
+        "total_cost": 80.0,
         "status": "Confirmed",
-        "created_at": "30/03/2024"
-      }  
+        "created_at": "31/03/2024"
+      }
+    ],
+    "reviews": [
+      {
+        "id": 3,
+        "attraction": {
+          "name": "The Wheel of Brisbane"
+        },
+        "rating": 1,
+        "comment": "HATE",
+        "created_at": "31-03-2024",
+        "user": {
+          "name": "User One"
+        }
+      }
+    ]
+  },
 ```
 Error Response
 1. Code: 401 Unauthorized (user not authenticated or token is invalid)
@@ -352,11 +396,10 @@ Example Validation Error Response:
 ```
 #### View Account
 
-<b>HTTP Method</b>: GET<br>
-<b>URL:</b> http://localhost:8080/auth/users/3 (number user ID)
-<br>
-<b>Authentication Required:</b> Yes, a valid JWT token must be used in Authorisation header.
-<b>Permissions:</b> Account user can view their own account, admin can view any account.
+- <b>HTTP Method</b>: GET<br>
+- <b>URL:</b> /auth/users/<user_id><br>
+- <b>Authentication Required:</b> Yes, a valid JWT token must be used in Authorisation header.<br>
+- <b>Permissions:</b> Account user can view their own account, admin can view any account.
 
 <b>Success Response</b>
 - Code 200 (OK)
@@ -389,11 +432,10 @@ Example:
 
 #### Update Account
 
-<b>HTTP Method</b>: PUT<br>
-<b>URL:</b> http://localhost:8080/auth/update 
-<br>
-<b>Authentication Required:</b> Yes, a valid JWT token must be used in Authorisation header.
-<b>Permissions:</b> Only account user can update their account.
+- <b>HTTP Method</b>: PUT<br>
+- <b>URL:</b> /auth/update <br>
+- <b>Authentication Required:</b> Yes, a valid JWT token must be used in Authorisation header.<br>
+- <b>Permissions:</b> Only account user can update their account.
 
 <b>Request Body:</b> JSON object containing any of the fields that the user wishes to update: name, email, phone, and password. Fields not provided will retain their existing values. Follows same data validation as "register user".
 
@@ -443,11 +485,10 @@ Example:
 ```
 #### Delete Account
 
-<b>HTTP Method</b>: DELETE<br>
-<b>URL:</b> http://localhost:8080/auth/delete/2 (number is user id of account to be deleted) 
-<br>
-<b>Authentication Required:</b> Yes, a valid JWT token must be used in Authorisation header.
-<b>Permissions:</b> Admins can delete any user account, user can delete their own account.
+- <b>HTTP Method</b>: DELETE<br>
+- <b>URL:</b> /auth/delete/<user_id><br>
+- <b>Authentication Required:</b> Yes, a valid JWT token must be used in Authorisation header.<br>
+- <b>Permissions:</b> Admins can delete any user account, user can delete their own account.
 
 <b>Success Response:</b>
 Code 200 (OK)<br>
@@ -477,13 +518,16 @@ Example:
 ```
 #### Unlock Account (as admin)
 
-<b>HTTP Method</b>: POST<br>
-<b>URL:</b> http://localhost:8080/auth/unlock_user/2 (number as user ID to unlock)
-<br>
-<b>Authentication Required:</b> Yes, a valid JWT token must be used in Authorisation header.<br>
-<b>Permissions:</b> Only admin can unlock an account.
+- <b>HTTP Method</b>: POST<br>
+- <b>URL:</b> http://localhost:8080/auth/unlock_user/2 (number as user ID to unlock)<br>
+- <b>Authentication Required:</b> Yes, a valid JWT token must be used in Authorisation header.<br>
+- <b>Permissions:</b> Only admin can unlock an account.
 
-Admin can retrieve a user to see if their account is locked. is_locked_out will show as "true" or "false". 
+Used for fraud prevention. A user can be locked out of their account for a couple of reasons:
+- They have 5 bookings in the past 24hrs with the status 'Requested'
+- They have bookings totaling more than $2500 for the same time period.
+
+Admin can retrieve a user to see if their account is locked. is_locked_out will show as "true" or "false". Once the account is unlocked, depending on the reason for the lock: A user won't be able to make another booking until admin updates the status of one or more bookings to Confirmed or Canceled, or 24hrs has passed until they can make another booking over the $2500 limit.
 
 ```json
 {
@@ -516,16 +560,12 @@ Retrieving the user account should now show as is_locked_out = false.
   "is_admin": false,
   "bookings":
 ```
-Further notes:<br>
-User will still be unable to create another booking if they have 5 bookings in "requested" status from the last 24hrs or exceed the $2500 limit in the same time period. They will need to wait 24hrs, have an admin confirm/cancel a booking or bookings, or have an admin create a booking on their behalf.
-
 #### Create New Booking
 
-<b>HTTP Method</b>: POST<br>
-<b>URL:</b> http://localhost:8080/booking/new
-<br>
-<b>Authentication Required:</b> Yes, a valid JWT token must be used in Authorisation header.
-<b>Permissions:</b> Only account user owner can create a booking.
+- <b>HTTP Method</b>: POST<br>
+- <b>URL:</b> /booking/new<br>
+- <b>Authentication Required:</b> Yes, a valid JWT token must be used in Authorisation header. <br>
+- <b>Permissions:</b> Only account user owner can create a booking.
 
 <b>Request Body:</b> JSON object containing booking details. 
 - id: Attraction ID as an integer.
@@ -616,18 +656,18 @@ Further notes:
 
 #### Admin Create Booking for User
 
-<b>HTTP Method</b>: POST<br>
-<b>URL:</b> http://localhost:8080/booking/new
-<br>
-<b>Authentication Required:</b> Yes, a valid JWT token must be used in Authorisation header.
-<b>Permissions:</b> Only account user owner can create a booking.
+- <b>HTTP Method</b>: POST<br>
+- <b>URL:</b> /booking/admin/<user_id><br>
+- <b>Authentication Required:</b> Yes, a valid JWT token must be used in Authorisation header.
+- <b>Permissions:</b> Only account user owner can create a booking.
 
-<b>Request Body:</b> JSON object containing booking details. 
+Request Body: JSON object containing booking details. 
 - id: Attraction ID as an integer.
 - booking_date: Australian date format DD-MM-YYYY. Must be dated between today and 6 months from now.
 - number_of_guests: as an integer - can only be between 1 and 20.
 
-Follows the same logic as create a booking, however an admin can enter the user id and create a booking exceeding the $1000 limit on their behalf. Would also be used in a case where potentially users don't want to or aren't able to make their own bookings - they can phone/email and an admin can create a booking on their behalf.<br>
+Follows the same logic as create a booking, however an admin can enter the user id and create a booking exceeding the $1000 limit on their behalf. Would also be used in a case where potentially users don't want to or aren't able to make their own bookings - they can phone/email and an admin can create a for them without accessing the users actual account.<br>
+
 <b>Success Response</b>
 - Code 201 (Created)
 Example Success Response:
@@ -676,11 +716,12 @@ Further Notes:
 
 #### View My Bookings
 
-<b>HTTP Method</b>: GET<br>
-<b>URL:</b> http://localhost:8080/booking/my_bookings
-<br>
-<b>Authentication Required:</b> Yes, a valid JWT token must be used in Authorisation header.<vr>
-<b>Permissions:</b> Only account user owner can access this endpoint to view their own bookings.
+- <b>HTTP Method</b>: GET<br>
+- <b>URL:</b> /booking/my_bookings<br>
+- <b>Authentication Required:</b> Yes, a valid JWT token must be used in Authorisation header.<br>
+- <b>Permissions:</b> Only account user owner can access this endpoint to view their own bookings.
+
+Logged in user can view all of their bookings.
 
 Success Response
 Code 200 (OK)
@@ -717,10 +758,10 @@ If an admin needs to view all bookings for a user, they would view a user accoun
 
 #### Update Booking (admin only)
 
-<b>HTTP Method</b>: PUT<br>
-<b>URL:</b> http://localhost:8080/booking/6 (integer = booking id)<br>
-<b>Authentication Required:</b> Yes - admin only.<vr>
-<b>Permissions:</b> Admins can update bookings for any user.
+- <b>HTTP Method</b>: PUT<br>
+- <b>URL:</b> http://localhost:8080/booking/6 (integer = booking id)<br>
+- <b>Authentication Required:</b> Yes - admin only.<vr>
+- <b>Permissions:</b> Admins can update bookings for any user.
 
 Admin can update the booking date, number of guests, and booking status for a user. In a real life scenario - an admin would likely need permission from the attraction to confirm or cancel a booking, update the booking date or add/remove guests (or they would admin their own attractions for approvals and amendments directly). One or more fields below are required.<br>
 If the number of guests are increased or decreased, the available slots on the attraction adjusts accordingly.
@@ -782,10 +823,12 @@ Code: 422 Unprocessable Entity (valid status wasn't provided)
 }
 ```
 #### Delete Booking (admin only)
-<b>HTTP Method</b>: DELETE<br>
-<b>URL:</b> http://localhost:8080/booking/6 (integer = booking id)<br>
-<b>Authentication Required:</b> Yes - admin only.<vr>
-<b>Permissions:</b> Admins can delete bookings for any user.
+- <b>HTTP Method</b>: DELETE<br>
+- <b>URL:</b> /booking/delete/<booking_id><br>
+- <b>Authentication Required:</b> Yes - admin only.<vr>
+- <b>Permissions:</b> Admins can delete bookings for any user.
+
+Only an admin can delete a booking. The assumption is they will either require permission from the attraction.
 
 Success Response: 
 - Code 200 (ok)
@@ -844,7 +887,7 @@ Example success response:
 ```
 #### View One Attraction
 - HTTP Method: GET
-- URL: http://localhost:8080/attraction/1 (integer attraction ID)
+- URL: /attraction/<attraction_id>
 - Authentication Required: No
 - Permissions: None required. Open to all users including guests.
 
@@ -877,7 +920,7 @@ Example success response:
 ```
 #### Create Attraction (admin only)
 - HTTP Method: POST
-- URL: http://localhost:8080/attractions/create
+- URL: /attractions/create
 - Authentication Required: Yes, admin only
 - Permissions: Only admin can create a new attraction.
 
@@ -983,7 +1026,7 @@ Error Responses:
 #### Update Attraction (admin only)
 
 - HTTP Method: PUT
-- URL: http://localhost:8080/attractions/update/3 (int = attraction ID)
+- URL: /attractions/update/<attraction_id>
 Authentication Required: Yes, admin privileges required.
 
 Allows admins to update the details of an existing attraction. Partial updates are supported, meaning not all fields need to be included in the request.
@@ -1029,8 +1072,8 @@ Code: 404 Not Found (attraction doesn't exist)
 ```
 Other error responses available on [Create Attraction](#create-attraction-admin-only).
 #### Delete Attraction (admin only)
-HTTP Method: DELETE
-URL: http://localhost:8080/attraction/delete/<attraction_id>
+HTTP Method: DELETE<br>
+URL: /attraction/delete/<attraction_id><br>
 Authentication Required: Yes, admin only.
 Permissions: Only admins can delete attractions.
 This endpoint allows an admin to delete an attraction identified by its ID. On successful deletion, it returns a message confirming the action.
@@ -1052,8 +1095,8 @@ Code: 404 (attraction with ID doesn't exist)
 #### Create A Review
 
 - HTTP Method: POST
-- URL: http://localhost:8080/review/create/{attraction_id}
-- Authentication Required: Yes, a valid JWT token must be used in Authorization header.
+- URL: /review/create/<attraction_id>
+- Authentication Required: Yes, a valid JWT token must be used in Authorization header.<br>
 - Permissions: User must have a confirmed past booking for the attraction.
 
 This endpoint will check if a user has had a previous confirmed booking at the attraction and if they have previously left a review before allowing one to be created. This means reviews are more likely to be genuine and stop spam.
@@ -1181,11 +1224,11 @@ Error Responses:
 #### Delete Reviews
 
 - HTTP Method: DELETE
-- URL: http://localhost:8080/review/delete/<review_id>
-Authentication Required: Yes, JWT token must be included in the Authorisation header.
-Permissions: Only the user who created the review can delete it.
+- URL: /review/delete/<review_id>
+- Authentication Required: Yes, JWT token must be included in the Authorisation header.
+Permissions: User can delete their own reviews, admin can delete any reviews.
 
-This endpoint allows a user to delete their review. It checks if the review exists and if the currently logged-in user is the owner of the review. If both conditions are met, the review is deleted from the database.
+Allows a user to delete their review. It checks if the review exists and if the currently logged-in user is the owner of the review. If both conditions are met, the review is deleted from the database.
 
 Success Response:
 - Code: 200 (OK)
