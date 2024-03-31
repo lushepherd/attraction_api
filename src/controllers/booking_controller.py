@@ -236,7 +236,7 @@ def delete_booking(booking_id):
     if booking is None:
         abort(404)
     
-    # Retrieve attraction associated with booking to adjust availability
+    # Retrieve attraction associated with booking
     attraction = Attraction.query.get(booking.attraction_id)
     if attraction:
         attraction.available_slots += booking.number_of_guests

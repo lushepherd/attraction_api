@@ -1,7 +1,7 @@
 from sqlalchemy.orm import column_property
-from sqlalchemy import select, func
+from sqlalchemy import select, func, UniqueConstraint
 from marshmallow import fields
-from marshmallow.validate import Regexp
+from marshmallow.validate import Regexp, Length
 
 from init import db, ma
 
@@ -33,6 +33,9 @@ class Attraction(db.Model):
 class AttractionSchema(ma.Schema):
     reviews = fields.List(fields.Nested('ReviewSchema', exclude=['attraction', 'id']))
     average_rating = fields.Method("get_average_rating")
+    description = fields.String(validate=Length(max=200, error="Maximum of 200 characters."))
+    contact_email = fields.Email()
+    contact_phone = fields.String(validate=Length(equal=10, error="Phone number must contain 10 characters."))
     opening_hours = fields.String(required=True, validate=Regexp(
         r'^((2[0-3]|[01]?[0-9]):([0-5]?[0-9]))\s*-\s*((2[0-3]|[01]?[0-9]):([0-5]?[0-9]))$',
         error="Opening hours must be in the format 'HH:MM - HH:MM' using 24-hour time."

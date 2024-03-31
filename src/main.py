@@ -51,14 +51,20 @@ def create_app():
     def integrity_error(err):
         if err.orig.pgcode == errorcodes.NOT_NULL_VIOLATION:
             return {"error": f"The {err.orig.diag.column_name} is required"}, 400
-        
+
         if err.orig.pgcode == errorcodes.UNIQUE_VIOLATION:
             constraint_name = err.orig.diag.constraint_name
             if constraint_name == 'uix_email':
                 error_message = "Email address already in use"
             elif constraint_name == 'uix_phone':
                 error_message = "Phone number already in use"
+            elif constraint_name == 'attractions_name_key':
+                error_message = "An attraction with this name already exists."
+            else:
+                error_message = "A unique constraint violation occurred."
             return {"error": error_message}, 409
+
+        return {"error": "A database integrity error occurred."}, 500
         
     from controllers.cli_controller import db_commands
     app.register_blueprint(db_commands)
