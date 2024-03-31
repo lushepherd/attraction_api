@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from flask import Blueprint, request, g
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required
 from marshmallow import ValidationError
 
 from init import db

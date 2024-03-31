@@ -1,14 +1,20 @@
 from datetime import datetime, timedelta
 
-from init import db
-from models.user import User
-from models.booking import Booking
-
 from models.user import User
 from models.booking import Booking
 from init import db
 
 def is_rate_limited(user_id):
+    """
+    Determines whether a user has exceeded the rate limit for booking requests within the last 24 hours.
+
+    A user is considered rate-limited if they have 5 or more bookings in the "Requested" status within
+    the past 24 hours. When rate-limited, the user's account is locked to prevent further booking requests.
+
+    This is to help with fraud prevention - if an account is locked, a user can contact admin who can then
+    verify them  and unlock their account, then change the status of their bookings to either "Confirmed" 
+    or "Cancelled". The user is then able to proceed with more bookings.
+    """
     user = User.query.get(user_id)
     # Check if user is already locked
     if user.is_locked:
@@ -18,7 +24,7 @@ def is_rate_limited(user_id):
     threshold_time = datetime.utcnow() - timedelta(days=1)
     bookings_count = Booking.query.filter(
         Booking.user_id == user_id,
-        Booking.status == 'Requested',  # Only count bookings that are in "Requested" status
+        Booking.status == 'Requested',  # Only counts bookings that are in "Requested" status
         Booking.created_at >= threshold_time
     ).count()
 
@@ -31,7 +37,7 @@ def is_rate_limited(user_id):
     return False
 
 def exceeded_booking_cost_limit(user_id, cost_limit=2500):
-    """Check if the total cost of bookings made by a user in the last 24 hours exceeds the cost limit."""
+    """Check if the total cost of bookings made by a user in the last 24 hours exceeds the cost limit of $2500."""
     threshold_time = datetime.utcnow() - timedelta(days=1)
     total_cost = db.session.query(db.func.sum(Booking.total_cost))\
                 .filter(Booking.user_id == user_id, Booking.created_at >= threshold_time)\

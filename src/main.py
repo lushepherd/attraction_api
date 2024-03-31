@@ -8,17 +8,26 @@ from marshmallow.exceptions import ValidationError
 from init import db, ma, bcrypt, jwt
 
 def create_app():
+    """
+    Initialises and configures the Flask application, database, and extensions.
+    
+    Sets up error handlers for common HTTP status codes and database integrity errors.
+    Registers blueprints for different parts of the application to organize routes.
+    """
     app = Flask(__name__)
     app.json.sort_keys = False
 
+    # Configures the app from environment variables (in the .env file)
     app.config["SQLALCHEMY_DATABASE_URI"]=os.environ.get("DATABASE_URI")
     app.config["JWT_SECRET_KEY"]=os.environ.get("JWT_SECRET_KEY")
     
+    # Initialises extensions in app
     db.init_app(app)
     ma.init_app(app)
     bcrypt.init_app(app)
     jwt.init_app(app)
     
+    # Global error handlers for common errors that return JSON responses
     @app.errorhandler(404)
     def not_found(err):
         return {"error": str(err)}, 404
@@ -49,6 +58,10 @@ def create_app():
     
     @app.errorhandler(IntegrityError)
     def integrity_error(err):
+        """
+        Custom handler for database integrity errors, including not null violations and unique constraint violations.
+        Returns some specific errors for unique violations.
+        """
         if err.orig.pgcode == errorcodes.NOT_NULL_VIOLATION:
             return {"error": f"The {err.orig.diag.column_name} is required"}, 400
 
