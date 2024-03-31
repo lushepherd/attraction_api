@@ -8,13 +8,25 @@
 - [Q2](#2---why-is-it-a-problem-that-needs-solving)
 - [Q3](#3---why-have-you-chosen-this-database-system-what-are-the-drawbacks-compared-to-others)
 - [Q4](#4---identify-and-discuss-the-key-functionalities-and-benefits-of-an-orm)
-- [Q5- Endpoint Documentation](#5---document-all-endpoints-for-your-api)
+- [Q5- Endpoint Documentation](#5---document-all-endpoints-for-your-api)<br><br>
+         <b>USERS</b><br>
+
     - [Register user](#register-user-endpoint---create-a-new-user-account-with-details-provided-by-client)
     - [Login user](#login-user-endpoint---log-in-an-already-registered-user)
     - [View all users (as admin)](#view-all-users-admin-only)
     - [View one user account (account holder or admin)](#view-account)
     - [Update Account](#update-account)
-    - [Delete Account (account holder or admin)](#delete-account)
+    - [Delete Account (account holder or admin)](#delete-account)<br>
+
+    <b>BOOKINGS</b>
+    - [Create Booking](#create-new-booking)
+    - [Admin Create Booking on behalf of User](#admin-create-booking-for-user)
+    - [View My Bookings](#view-my-bookings)
+    - [Update Booking (admin only)](#update-booking-admin-only)
+    - [Delete Booking (admin only)](#delete-account)
+
+    <b>ATTRACTIONS</b>
+
 - [Q6](#6---an-erd-for-your-app)
 - [Q7](#7---detail-any-third-party-services-that-your-app-will-use)
 - [Q8](#8---describe-your-projects-models-in-terms-of-the-relationships-they-have-with-each-other)
@@ -182,9 +194,15 @@ Validation Error
 - Content: Error message detailing missing or invalid fields.
 Example Validation Error Response:
 ```json
-{
-  "name": ["Name is required."],
-  "email": ["Invalid email format."]
+  {
+  "error": {
+    "name": [
+      "Name cannot be empty.",
+    ],
+    "email": [
+      "Not a valid email address."
+    ]
+  }
 }
 ```
 Integrity Errors
@@ -192,13 +210,21 @@ Integrity Errors
  - Content: A message indicating that a required field is missing or invalid.
  - Example NOT NULL Violation Response and Validation Error Response:
 ```json
-{
-  "error": "The email is required"
+  {
+  "error": {
+    "email": [
+      "Not a valid email address."
+    ]
+  }
 }
 ```
 ```json
 {
-  "password": ["Password must be at least 8 characters long."]
+  "error": {
+    "password": [
+      "Password must be at least 8 characters long."
+    ]
+  }
 }
 ```
 Unique Violations
@@ -247,7 +273,7 @@ Example Success Response:
 ```json
 {
   "email": "smith.john@email.com",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTcxMTc4NjA5NCwianRpIjoiZGE5NGE2YWYtM2QyYS00Njk1LTk2ZWMtOTE5YzE5NzFiMjRmIiwidHlwZSI6ImFjY2VzcyIsInN1YiI6IjQiLCJuYmYiOjE3MTE3ODYwOTQsImNzcmYiOiIzNmI2OTMxNy1kYTAxLTQxZTUtOGY0Ny1iOGNmNjk1ZTgxNjkiLCJleHAiOjE3MTE4NzI0OTR9.dzIOHMSoiItH098hUfX2lZfX57eRzsrtj0oitgHujBU",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "is_admin": false
 }
 ```
@@ -257,7 +283,7 @@ Error Response
 Example Validation Error Response:
 ```json
 {
-  "error": "Invalid email or password"
+  "error": "401 Unauthorized: The server could not verify that you are authorized to access the URL requested. You either supplied the wrong credentials (e.g. a bad password), or your browser doesn't understand how to supply the credentials required."
 }
 ```
 #### View All Users (admin only)
@@ -349,20 +375,12 @@ Error Responses
 
 - Code: 401 Unauthorized (user is not authenticated or token is invalid)
 - Code: 403 Forbidden (user is not account holder or admin)
-
-Example:
-```json
-{
-    "error": "Access denied"
-}
-```
-
 - Code: 404 Not Found (user with specified ID doesn't exist)
 
 Example:
 ```json
 {
-    "error": "User not found"
+  "error": "403 Forbidden: You don't have the permission to access the requested resource. It is either read-protected or not readable by the server."
 }
 ```
 
@@ -451,18 +469,344 @@ Example:
 Example:
 ```json
 {
+  "error": "404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again."
+}
+```
+#### Unlock Account (as admin)
+
+<b>HTTP Method</b>: POST<br>
+<b>URL:</b> http://localhost:8080/auth/unlock_user/2 (number as user ID to unlock)
+<br>
+<b>Authentication Required:</b> Yes, a valid JWT token must be used in Authorisation header.<br>
+<b>Permissions:</b> Only admin can unlock an account.
+
+Admin can retrieve a user to see if their account is locked. is_locked_out will show as "true" or "false". 
+
+```json
+{
+  "id": 3,
+  "name": "John Smith",
+  "email": "mrjohnsmith@email.com",
+  "phone": "0417987696",
+  "is_locked_out": true,
+  "is_admin": false,
+  "bookings": 
+```
+Success Response
+
+Code 200 (OK)
+
+Example success response:
+```json
+{
+  "message": "User account 3 unlocked successfully"
+}
+```
+Retrieving the user account should now show as is_locked_out = false.
+```json
+{
+  "id": 3,
+  "name": "John Smith",
+  "email": "mrjohnsmith@email.com",
+  "phone": "0417987696",
+  "is_locked_out": false,
+  "is_admin": false,
+  "bookings":
+```
+Further notes:<br>
+User will still be unable to create another booking if they have 5 bookings in "requested" status from the last 24hrs or exceed the $2500 limit in the same time period. They will need to wait 24hrs, have an admin confirm/cancel a booking or bookings, or have an admin create a booking on their behalf.
+
+#### Create New Booking
+
+<b>HTTP Method</b>: POST<br>
+<b>URL:</b> http://localhost:8080/booking/new
+<br>
+<b>Authentication Required:</b> Yes, a valid JWT token must be used in Authorisation header.
+<b>Permissions:</b> Only account user owner can create a booking.
+
+<b>Request Body:</b> JSON object containing booking details. 
+- id: Attraction ID as an integer.
+- booking_date: Australian date format DD-MM-YYYY. Must be dated between today and 6 months from now.
+- number_of_guests: as an integer - can only be between 1 and 20.
+
+Example:
+```json
+{
+  "id": 1, 
+  "booking_date": "10-04-2024",  
+  "number_of_guests": 2
+    }
+```
+
+<b>Success Response</b>
+- Code 201 (Created)
+Example Success Response:
+```json
+{
+  "id": 3,
+  "attraction": {
+    "name": "The Great Wall of China"
+  },
+  "booking_date": "30/05/2024",
+  "number_of_guests": 5,
+  "total_cost": 750.0,
+  "status": "Requested",
+  "created_at": "31/03/2024",
+  "user": {
+    "name": "John Smith",
+    "email": "mrjohnsmith@email.com",
+    "phone": "0417987696"
+  }
+}
+```
+
+Error Responses
+- Code: 400 Bad Request (For invalid request parameters or booking constraints exceeded)
+```json
+{
+  "message": "Invalid booking date format. Enter as DD-MM-YYYY."
+}
+```
+```json
+{
+  "message": "For bookings greater than 20, please contact the attraction directly."
+}
+```
+- Code: 403 Forbidden (When trying to create a booking over $1000 without admin permissions)
+```json
+{
+  "message": "Bookings over $1000 require admin permission."
+}
+```
+- Code: 429 Too Many Requests (When account is locked due to security reasons)
+```json
+{
+  "message": "Account locked for security reasons. Please contact admin."
+}
+```
+
+- Code: 404 Not Found (When the specified attraction ID does not exist)
+Content: { "error": "Attraction not found" }
+
+Example:
+```json
+{
     "error": "User not found"
 }
 ```
-#### Create New Booking
+```json
+{
+  "name": [
+    "Name can't contain special characters."
+  ]
+}
+```
+Further notes:
+- Bookings are subject to validation checks including date format, date range (booking must be within 6 months from today), and attraction slot availability.
+- Security checks are in place to reduce instances of fraud. 
+    - Users need admin permission for bookings of $1000 or more
+    - Users accounts are locked if they create more than 5 bookings or exceed total cost of $2500 in a 24hr period. Account can only be unlocked by an admin (in a real life scenario, admin would verify the bookings then confirm them and unlock the account, or cancel the bookings and keep account locked)
+    - If a user requires another booking, admin can confirm or cancel current bookings and unlock their account.
+    - If a user requires a booking exceeding $1000,  admin can create a booking on their behalf.
+    - Bookings for 20 or more people are not allowed.
+- When bookings are created, the number of guests for the new booking is deducted from the attraction availability to avoid overbooking.
+
+#### Admin Create Booking for User
+
+<b>HTTP Method</b>: POST<br>
+<b>URL:</b> http://localhost:8080/booking/new
+<br>
+<b>Authentication Required:</b> Yes, a valid JWT token must be used in Authorisation header.
+<b>Permissions:</b> Only account user owner can create a booking.
+
+<b>Request Body:</b> JSON object containing booking details. 
+- id: Attraction ID as an integer.
+- booking_date: Australian date format DD-MM-YYYY. Must be dated between today and 6 months from now.
+- number_of_guests: as an integer - can only be between 1 and 20.
+
+Follows the same logic as create a booking, however an admin can enter the user id and create a booking exceeding the $1000 limit on their behalf. Would also be used in a case where potentially users don't want to or aren't able to make their own bookings - they can phone/email and an admin can create a booking on their behalf.<br>
+<b>Success Response</b>
+- Code 201 (Created)
+Example Success Response:
+```json
+{
+  "id": 15,
+  "attraction": {
+    "name": "The Great Wall of China"
+  },
+  "booking_date": "30/06/2024",
+  "number_of_guests": 10,
+  "total_cost": 1500.0,
+  "status": "Requested",
+  "created_at": "31/03/2024",
+  "user": {
+    "name": "John Smith",
+    "email": "mrjohnsmith@email.com",
+    "phone": "0417987696"
+  }
+}
+```
+Error Response:
+- Code: 400 Bad Request (missing required fields, JSON payload incorrectly configured)
+
+Examples:
+```json
+{
+  "error": "400 Bad Request: The browser (or proxy) sent a request that this server could not understand."
+}
+```
+Code 403: Forbidden (non admin user attempting booking)
+```json
+{
+  "error": "Not authorised. Admin access required."
+}
+```
+Further Notes:
+- Admin can't make bookings for someone with a locked account, account must be unlocked. If account was locked due to having 5 bookings in requested, admin must confirm or cancel one or more bookings to make an additional booking. Locked accounts will return the following error:
+
+```json
+{
+  "message": "Account locked for security reasons. Please contact admin."
+}
+```
+- Admin unlocking an account and then making a booking without changing a booking status will lock the account again.
 
 #### View My Bookings
 
+<b>HTTP Method</b>: GET<br>
+<b>URL:</b> http://localhost:8080/booking/my_bookings
+<br>
+<b>Authentication Required:</b> Yes, a valid JWT token must be used in Authorisation header.<vr>
+<b>Permissions:</b> Only account user owner can access this endpoint to view their own bookings.
+
+Success Response
+Code 200 (OK)
+
+Example:
+```json
+{
+    "id": 15,
+    "attraction": {
+      "name": "The Great Wall of China"
+    },
+    "booking_date": "30/06/2024",
+    "number_of_guests": 10,
+    "total_cost": 1500.0,
+    "status": "Requested",
+    "created_at": "31/03/2024",
+    "user": {
+      "name": "John Smith",
+      "email": "mrjohnsmith@email.com",
+      "phone": "0417987696"
+    }
+```
+Error Responses:
+Code: 401 Unauthorized
+
+This error occurs if the JWT token is missing, expired, or invalid.
+
+If a user has no bookings, it will return 
+```json
+[]
+```
+Further notes:<br>
+If an admin needs to view all bookings for a user, they would view a user account via auth/user/2 (number is user id) or they can retrieve all user accounts and all bookings via auth/users.
+
 #### Update Booking (admin only)
 
-#### Delete Booking (admin only)
+<b>HTTP Method</b>: PUT<br>
+<b>URL:</b> http://localhost:8080/booking/6 (integer = booking id)<br>
+<b>Authentication Required:</b> Yes - admin only.<vr>
+<b>Permissions:</b> Admins can update bookings for any user.
 
-#### View All Bookings (admin only)
+Admin can update the booking date, number of guests, and booking status for a user. In a real life scenario - an admin would likely need permission from the attraction to confirm or cancel a booking, update the booking date or add/remove guests (or they would admin their own attractions for approvals and amendments directly). One or more fields below are required.<br>
+If the number of guests are increased or decreased, the available slots on the attraction adjusts accordingly.
+
+Request body:
+- booking_date (optional): The new booking date in DD-MM-YYYY format.
+- number_of_guests (optional): The updated number of guests for the booking.
+- status (optional): The new status of the booking (one of "Requested", "Confirmed", or "Cancelled").
+
+Success Response
+Code 200 (OK)
+
+Example:
+
+```json
+{
+  "id": 17,
+  "attraction": {
+    "name": "The Great Wall of China"
+  },
+  "booking_date": "30/06/2024",
+  "number_of_guests": 2,
+  "total_cost": 300.0,
+  "status": "Confirmed",
+  "created_at": "31/03/2024",
+  "user": {
+    "name": "John Smith",
+    "email": "mrjohnsmith@email.com",
+    "phone": "0417987696"
+  }
+}
+```
+Error Responses:
+
+- Code: 404 Not Found (booking doesn't exist)
+```json
+{
+  "error": "404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again."
+}
+```
+- 400 Bad Request (invalid booking date format)
+```json
+{
+  "message": "Invalid booking date format. Enter as DD-MM-YYYY."
+}
+```
+
+Code: 400 Bad Request (not enough attraction availablility for booking)
+```json
+{
+"error": "Not enough availability for the updated number of guests."
+}
+```
+Code: 422 Unprocessable Entity (valid status wasn't provided)
+```json
+{
+  "error": "Invalid status value",
+  "message": "Status can only be 'Requested', 'Confirmed', or 'Cancelled'."
+}
+```
+#### Delete Booking (admin only)
+<b>HTTP Method</b>: DELETE<br>
+<b>URL:</b> http://localhost:8080/booking/6 (integer = booking id)<br>
+<b>Authentication Required:</b> Yes - admin only.<vr>
+<b>Permissions:</b> Admins can delete bookings for any user.
+
+Success Response: 
+- Code 200 (ok)
+
+Example:
+```json
+{
+  "message": "Booking deleted successfully"
+}
+```
+Error Response:
+- Code 404 Not Found (Booking doesn't exist)
+```json
+{
+  "error": "404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again."
+}
+```
+- Code 403 Forbidden (user trying to delete doesn't have admin privileges)
+```json
+{
+  "error": "Not authorised. Admin access required."
+}
+```
+
 
 #### Create Attraction (admin only)
 
