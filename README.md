@@ -3,11 +3,10 @@
 ## Menu
 
 - [API Setup and Installation](#api-setup-and-installation)
-- [Software Development Plan](#software-development-plan)
-- [Q1](#1---identification-of-the-problem-you-are-trying-to-solve-by-building-this-particular-app)
-- [Q2](#2---why-is-it-a-problem-that-needs-solving)
-- [Q3](#3---why-have-you-chosen-this-database-system-what-are-the-drawbacks-compared-to-others)
-- [Q4](#4---identify-and-discuss-the-key-functionalities-and-benefits-of-an-orm)
+- [Q1 Identification of the problem my app solves](#1---identification-of-the-problem-you-are-trying-to-solve-by-building-this-particular-app)
+- [Q2 Why is it a problem that needs solving](#2---why-is-it-a-problem-that-needs-solving)
+- [Q3 Why have I chosen this database and drawbacks](#3---why-have-you-chosen-this-database-system-what-are-the-drawbacks-compared-to-others)
+- [Q4 Key functionalities and benefits of an ORM](#4---identify-and-discuss-the-key-functionalities-and-benefits-of-an-orm)
 - [Q5- Endpoint Documentation](#5---document-all-endpoints-for-your-api)<br><br>
          <b>USERS</b><br>
 
@@ -38,10 +37,10 @@
     - [Update A Review](#update-review)
     - [Delete A Review](#delete-reviews)
 - [Q6 ERD](#6---an-erd-for-your-app)
-- [Q7](#7---detail-any-third-party-services-that-your-app-will-use)
-- [Q8](#8---describe-your-projects-models-in-terms-of-the-relationships-they-have-with-each-other)
-- [Q9](#9---discuss-the-database-relations-to-be-implemented-in-your-application)
-- [Q10](#10---describe-the-way-tasks-are-allocated-and-tracked-in-your-project)
+- [Q7 Third Party Servies Used by my APP](#7---detail-any-third-party-services-that-your-app-will-use)
+- [Q8 Description of my Projects Models](#8---describe-your-projects-models-in-terms-of-the-relationships-they-have-with-each-other)
+- [Q9 Database Relations](#9---discuss-the-database-relations-to-be-implemented-in-your-application)
+- [Q10 Software Development Plan](#10---describe-the-way-tasks-are-allocated-and-tracked-in-your-project)
 - [Resources](#resources)
 
 ### API Setup and Installation
