@@ -1,5 +1,7 @@
+from datetime import datetime
+
 from marshmallow import fields
-from marshmallow.validate import Length, Email, Regexp
+from marshmallow.validate import Length, Regexp
 from sqlalchemy import UniqueConstraint
 
 from init import db, ma
@@ -12,6 +14,8 @@ class User(db.Model):
     password = db.Column(db.String, nullable=False)
     phone = db.Column(db.String, nullable=False, unique=True)
     is_admin = db.Column(db.Boolean, default=False)
+    booking_attempts = db.Column(db.Integer, default=0)
+    is_locked = db.Column(db.Boolean, default=False)
     
     bookings = db.relationship('Booking', back_populates='user', cascade='all, delete')
     reviews = db.relationship('Review', back_populates='user', cascade='all, delete')
@@ -33,10 +37,19 @@ class UserSchema(ma.Schema):
     bookings = fields.List(fields.Nested('BookingSchema', exclude=['user']))
     reviews = fields.List(fields.Nested('ReviewSchema', only=('attraction', 'rating', 'comment', 'created_at')))
     
+    is_locked_out = fields.Method("get_lockout_status")
+    
+    def get_lockout_status(self, user):
+        """Determines if the user is currently locked out."""
+        if user.is_locked:
+            return True
+        return False
+    
     class Meta:
         ordered = True
-        fields = ('id', 'name', 'email', 'password', 'phone', 'is_admin', 'bookings', 'reviews')      
+        fields = ('id', 'name', 'email', 'password', 'phone', 'is_locked_out', 'is_admin', 'bookings', 'reviews')      
 
 user_schema = UserSchema(exclude=['password'])
 users_schema = UserSchema(many=True, exclude=['password'])     
 user_registration_schema = UserSchema()
+

@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from marshmallow import fields
-from marshmallow.validate import OneOf
+from marshmallow.validate import OneOf, Range
 
 from init import db, ma
 
@@ -33,6 +33,7 @@ class BookingSchema(ma.Schema):
     user = fields.Nested('UserSchema', only=['name', 'email', 'phone'])
     attraction = fields.Nested('AttractionSchema', only=('name',))
     booking_date = fields.DateTime('%d/%m/%Y')
+    number_of_guests = fields.Integer(validate=Range(min=1, max=20, error="For bookings greater than 20, please contact the attraction directly."))
     created_at = fields.DateTime('%d/%m/%Y')
 
     class Meta:

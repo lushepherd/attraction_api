@@ -3,8 +3,7 @@ from flask_jwt_extended import jwt_required
 
 from init import db
 from models.attraction import Attraction, attraction_schema, attractions_schema 
-
-from controllers.auth_utils import authorise_as_admin
+from utils.auth_utils import authorise_as_admin
 
 attraction_bp = Blueprint('attraction_bp', __name__, url_prefix='/attractions')
 

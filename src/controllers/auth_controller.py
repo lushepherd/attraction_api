@@ -5,7 +5,7 @@ from flask_jwt_extended import create_access_token, jwt_required
 
 from init import db, bcrypt
 from models.user import User, UserSchema, user_schema, users_schema, user_registration_schema
-from controllers.auth_utils import authorise_as_admin, hash_password, validate_data, load_current_user
+from utils.auth_utils import authorise_as_admin, hash_password, validate_data, load_current_user
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -217,5 +217,20 @@ def delete_account(user_id):
     db.session.commit()
     
     return {"message": "User deleted successfully"}, 200
+
+@auth_bp.route('/unlock_user/<int:user_id>', methods=['POST']) # Admin unlocks a user account
+@jwt_required()
+@authorise_as_admin
+def unlock_user_account(user_id):
+    user_to_unlock = User.query.get(user_id)
+    if not user_to_unlock:
+        abort(404)
+
+    user_to_unlock.is_locked = False  
+    user_to_unlock.booking_attempts = 0
+    db.session.commit()
+
+    return {'message': f'User account {user_id} unlocked successfully'}, 200
+
 
 

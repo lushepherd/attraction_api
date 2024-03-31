@@ -27,6 +27,10 @@ def create_app():
     def validation_error(error):
         return {"error": error.messages}, 400
     
+    @app.errorhandler(400)
+    def bad_request(err):
+        return ({"error": str(err)}), 400
+    
     @app.errorhandler(401)
     def unauthorised_error(err):
         return ({"error": str(err)}), 401
@@ -35,6 +39,10 @@ def create_app():
     def forbidden(err):
         return {"error": str(err)}, 403
 
+    @app.errorhandler(500)
+    def internal_server_error(err):
+        return {"error": str(err)}, 500
+    
     @app.errorhandler(500)
     def internal_server_error(err):
         return {"error": str(err)}, 500
