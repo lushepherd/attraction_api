@@ -26,8 +26,18 @@
     - [Delete Booking (admin only)](#delete-account)
 
     <b>ATTRACTIONS</b>
+    - [View All Attractions](#view-all-attractions)
+    - [View One Attraction](#view-one-attraction)
+    - [Create Attraction (admin only)](#create-attraction-admin-only)
+    - [Update Attraction (admin only)](#update-attraction-admin-only)
+    - [Delete Attraction (admin only)](#delete-attraction-admin-only)
 
-- [Q6](#6---an-erd-for-your-app)
+    <b>REVIEWS</b>
+    - [Create A Review](#create-a-review)
+    - [View My Reviews](#view-my-reviews)
+    - [Update A Review](#update-review)
+    - [Delete A Review](#delete-reviews)
+- [Q6 ERD](#6---an-erd-for-your-app)
 - [Q7](#7---detail-any-third-party-services-that-your-app-will-use)
 - [Q8](#8---describe-your-projects-models-in-terms-of-the-relationships-they-have-with-each-other)
 - [Q9](#9---discuss-the-database-relations-to-be-implemented-in-your-application)
@@ -61,12 +71,6 @@ flask db seed
 ```
 
 For further instructions on usage, please navigate to [Endpoints](#5---document-all-endpoints-for-your-api) below.
-
-### Software Development Plan
-
-![Plan page 1](./docs/images/asana1.png)
-![Plan page 2](./docs/images/asana2.png)
-![Plan page 3](./docs/images/asana3.png)
 
 ### 1 - Identification of the problem you are trying to solve by building this particular app.
 
@@ -806,37 +810,585 @@ Error Response:
   "error": "Not authorised. Admin access required."
 }
 ```
+#### View All Attractions
+- HTTP Method: GET
+- URL: http://localhost:8080/attraction/all
+- Authentication Required: No
+- Permissions: None required. Open to all users including guests.
 
+Retrieves a list of all attractions available. It does not require any authentication, making the information accessible to both authenticated users and guests. The attractions are ordered by their names to facilitate easy browsing.
 
+Success Response
+Code 200 (OK)
+
+Example success response:
+```json
+{
+    "id": 2,
+    "name": "The Colosseum",
+    "average_rating": "10.0",
+    "ticket_price": 70.0,
+    "location": "Rome, Italy",
+    "description": "Oval amphitheatre in the centre of Rome, Italy.",
+    "contact_phone": "0456733331",
+    "contact_email": "colosseum@email.com",
+    "opening_hours": "10:00 - 23:00",
+    "available_slots": 100,
+    "reviews": [
+      {
+        "rating": 10,
+        "comment": "Best day of my life!",
+        "created_at": "31/03/2024",
+        "user": {
+          "name": "Admin One"
+        }
+```
+#### View One Attraction
+- HTTP Method: GET
+- URL: http://localhost:8080/attraction/1 (integer attraction ID)
+- Authentication Required: No
+- Permissions: None required. Open to all users including guests.
+
+Retrieves one attraction. It does not require any authentication, making the information accessible to both authenticated users and guests. Useful for viewing detailed information for attraction, reviews etc.
+
+Success Response
+Code 200 (OK)
+
+Example success response:
+```json
+{
+    "id": 2,
+    "name": "The Colosseum",
+    "average_rating": "10.0",
+    "ticket_price": 70.0,
+    "location": "Rome, Italy",
+    "description": "Oval amphitheatre in the centre of Rome, Italy.",
+    "contact_phone": "0456733331",
+    "contact_email": "colosseum@email.com",
+    "opening_hours": "10:00 - 23:00",
+    "available_slots": 100,
+    "reviews": [
+      {
+        "rating": 10,
+        "comment": "Best day of my life!",
+        "created_at": "31/03/2024",
+        "user": {
+          "name": "Admin One"
+        }
+```
 #### Create Attraction (admin only)
+- HTTP Method: POST
+- URL: http://localhost:8080/attractions/create
+- Authentication Required: Yes, admin only
+- Permissions: Only admin can create a new attraction.
 
+Admin can create new attractions. The only unique constraint is the name, as a company with the same email address and phone can own more than one attraction.
+
+Request body:
+The request must include a JSON object with the following fields:
+
+- name: The name of the attraction (must be unique).
+- ticket_price: The price of a ticket (float)
+- description: A brief description of the attraction (200 character limit)
+- location: The location of the attraction.
+- contact_phone: A phone number for inquiries (10 character limit)
+- contact_email: An email address for inquiries (must be valid email format)
+- opening_hours: The opening hours, formatted as 'HH:MM - HH:MM'.
+- available_slots: The number of available slots for booking (int)
+
+Example Request Body:
+```json
+{
+  "name": "The Wheel of Brisbane", 
+  "ticket_price": 40.0,
+  "description": "Iconic landmark on South Bank.",
+  "location": "Brisbane",
+  "contact_phone": "0456745551",
+  "contact_email": "brisbanewheel@email.com",
+  "opening_hours": "10:00-21:00",
+  "available_slots": 100
+}
+```
+
+Success Response
+Code 200 (OK)
+
+Example success response:
+```json
+ {
+    "id": 6,
+    "name": "The Wheel of Brisbane",
+    "average_rating": "0.0",
+    "ticket_price": 40.0,
+    "location": "Brisbane",
+    "description": "Iconic landmark on South Bank.",
+    "contact_phone": "0790000000",
+    "contact_email": "wheel@email.com",
+    "opening_hours": "10:00-20:00",
+    "available_slots": 30,
+    "reviews": []
+  }
+]
+```
+Error Responses:
+- Code: 400 Bad Request (missing or invalid fields in the request body)
+```json
+{
+  "error": {
+    "opening_hours": [
+      "Opening hours must be in the format 'HH:MM - HH:MM' using 24-hour time."
+    ]
+  }
+}
+```
+```json
+{
+  "error": {
+    "description": [
+      "Maximum of 200 characters."
+    ]
+  }
+}
+```
+```json
+{
+  "error": {
+    "contact_email": [
+      "Not a valid email address."
+    ]
+  }
+}
+```
+```json
+{
+  "error": {
+    "contact_phone": [
+      "Phone number must contain 10 characters."
+    ]
+  }
+}
+```
+- Code: 401 Unauthorized (user not authenticated)
+- Code: 403 Forbidden (user is authenticated but does not have admin privileges)
+```json
+{
+  "error": "Not authorised. Admin access required."
+}
+```
+- Code: 409 Conflict (an attraction with the same name already exists)
+```json
+{
+  "error": "An attraction with this name already exists."
+}
+```
 #### Update Attraction (admin only)
 
+- HTTP Method: PUT
+- URL: http://localhost:8080/attractions/update/3 (int = attraction ID)
+Authentication Required: Yes, admin privileges required.
+
+Allows admins to update the details of an existing attraction. Partial updates are supported, meaning not all fields need to be included in the request.
+
+Request Body (JSON): Fields are optional unless stated otherwise. All must follow same parameters as the create fields.
+
+- name: The new name of the attraction (must be unique)
+- description: Updated description of the attraction (max 200 characters).
+- ticket_price: New ticket price
+- location: The updated location
+- contact_phone: New contact phone number (must  be 10 digits)
+- contact_email: Updated email address (must be valid email format)
+- opening_hours: The new opening hours, in "HH:MM - HH:MM" format
+- available_slots: Updated number of available slots
+
+Success Response:
+
+Code: 200 OK
+Content: Updated attraction details.
+Example Request:
+```json
+{
+  "id": 25,
+  "name": "The Wheel of Brisbane",
+  "average_rating": "0.0",
+  "ticket_price": 40.0,
+  "location": "Brisbane",
+  "description": "Iconic landmark on South Bank.",
+  "contact_phone": "0456745551",
+  "contact_email": "brisbanewheel@email.com",
+  "opening_hours": "10:00-21:00",
+  "available_slots": 100,
+  "reviews": []
+}
+```
+Error Responses:
+
+Code: 404 Not Found (attraction doesn't exist)
+```json
+{
+  "error": "Attraction with id 250 not found"
+}
+```
+Other error responses available on [Create Attraction](#create-attraction-admin-only).
 #### Delete Attraction (admin only)
+HTTP Method: DELETE
+URL: http://localhost:8080/attraction/delete/<attraction_id>
+Authentication Required: Yes, admin only.
+Permissions: Only admins can delete attractions.
+This endpoint allows an admin to delete an attraction identified by its ID. On successful deletion, it returns a message confirming the action.
 
-#### View All Attractions
-
-#### View One Attraction
-
+Success Response:
+Code: 200 (OK)
+```json
+{
+  "message": "Attraction 'The Wheel of Brisbane' deleted successfully"
+}
+```
+Error Response:
+Code: 404 (attraction with ID doesn't exist)
+```json
+{
+  "message": "The requested attraction does not exist"
+}
+```
 #### Create A Review
 
+- HTTP Method: POST
+- URL: http://localhost:8080/review/create/{attraction_id}
+- Authentication Required: Yes, a valid JWT token must be used in Authorization header.
+- Permissions: User must have a confirmed past booking for the attraction.
+
+This endpoint will check if a user has had a previous confirmed booking at the attraction and if they have previously left a review before allowing one to be created. This means reviews are more likely to be genuine and stop spam.
+
+Request Body:
+
+- rating: The rating given to the attraction (integer, must be between 1 and 10)
+comment: The comment about the experience. (optional, 100 character limit.)
+
+```json
+{
+  "rating": 7,
+  "comment": "Amazing experience, highly recommend visiting!"
+}
+```
+Success Response:
+- Code: 201 (OK)
+
+Example:
+```json
+{
+  "message": "Review successfully added"
+}
+```
+Error Responses:
+
+- Code: 403 Forbidden (no confirmed past booking)
+```json
+{
+  "error": "No confirmed booking for this attraction"
+}
+```
+Code: 400 Bad Request (invalid or missing fields)
+```json
+{
+  "error": {
+    "comment": [
+      "Exceeds 100 character limit."
+    ]
+  }
+}
+```
+
 #### View My Reviews
+- HTTP Method: GET
+- URL: http://localhost:8080/review/my_reviews
+- Authentication Required: Yes
+- Permissions: User can view their own reviews.
+
+Retrieves reviews for the current logged in user.
+
+Success Response
+- Code: 200 (OK)
+
+Example:
+```json
+[
+  {
+    "id": 1,
+    "attraction": {
+      "name": "The Wheel of Brisbane"
+    },
+    "rating": 7,
+    "comment": "Was really busy, long queues",
+    "created_at": "31/03/2024",
+    "user": {
+      "name": "User One"
+    }
+  }
+]
+```
+Error Responses:
+
+- Code: 401 Unauthorized (Missing Authorization Header")
+- Code: 422 Unprocessable Entity (token has expired)
 
 #### Update Review
+- HTTP Method: POST
+- URL: http://localhost:8080/review/update/<review_id>
+- Authentication Required: Yes
+- Permissions: User can update their own reviews.
 
+Allows for the current logged in user to update a review they have posted. Allows for partial updates - the rating or comment can be updated on their own.
+
+Success Response
+- Code: 200 (OK)
+```json
+{
+  "id": 1,
+  "attraction": {
+    "name": "The Wheel of Brisbane"
+  },
+  "rating": 2,
+  "comment": "Changed my mind, hated it",
+  "created_at": "31/03/2024",
+  "user": {
+    "name": "User One"
+  }
+}
+```
+Error Responses:
+
+- Code: 404 Not Found (review not found or user is not the owner)
+```json
+{
+  "error": "Review not found or access denied"
+}
+``` 
+- Code: 400 (bad request- rating must be between 1 and 10, comment character limit of 100)
+
+```json
+{
+  "rating": [
+    "Invalid value."
+  ]
+}
+```
+```json
+{  
+  "comment": [
+    "Exceeds 100 character limit."
+  ]
+}  
+```
 #### Delete Reviews
 
-#### View All Reviews For a Particular Attraction
+- HTTP Method: DELETE
+- URL: http://localhost:8080/review/delete/<review_id>
+Authentication Required: Yes, JWT token must be included in the Authorisation header.
+Permissions: Only the user who created the review can delete it.
+
+This endpoint allows a user to delete their review. It checks if the review exists and if the currently logged-in user is the owner of the review. If both conditions are met, the review is deleted from the database.
+
+Success Response:
+- Code: 200 (OK)
+Example:
+```json
+{
+    "message": "Review deleted successfully"
+}
+```
+Error Responses:
+- Code 404 Not Found (review doesn't exist or current user is not the owner)
 
 ### 6 - An ERD for your app
+![ERD](./docs/images/ERD.png)
 
 ### 7 - Detail any third party services that your app will use
+Datetime:
+- Uses current datetime to check user bookings made in the last 24hrs for security purposes (amount of bookings, total cost of bookings)
+- Timestamp when bookings and reviews have been created 
+- Checking if a user has a booking that has already passed todays date so they are able to leave a review 
+- Allows dates and time to display in my chosen format (dates for bookings, opening hours)
+- Security tokenisation for authorisation purposes
 
-### 8 - 	Describe your projects models in terms of the relationships they have with each other
+flask_sqlalchemy.SQLAlchemy: 
+- Integrates SQLAlchemy with Flask. It simplifies database management by providing a declarative syntax for model definitions and easy-to-use methods for database sessions. db = SQLAlchemy() initialises the extension.
+
+sqlalchemy:
+- UniqueConstraint: Used to define database-level constraints that ensure unique values are stored in specific columns or combinations of columns in a table. I use it for unique name/ email/ phone numbers.
+- select, func: Used for constructing SQL select statements. select is used to specify which columns to retrieve, and func allows access to SQL functions like AVG. I use it to get an average rating for an attraction when a review has been left.
+- column_property: Creates a virtual column on the Attraction model that calculates the average rating from reviews each time an attraction is queried, defaulting to 0 if there are no reviews
+
+- sqlalchemy.exc.IntegrityError: Captures exceptions related to database integrity, such as violations of unique constraints or not null violations. These are used in error handling in my main.py file. 
+
+- flask_bcrypt.Bcrypt: Bcrypt hashing utilities for Flask. I use it to hash and check passwords securely for users.
+
+- flask_jwt_extended.JWTManager: Manages JWT operations in Flask, such as token encoding/decoding. Used for authenticating users in my app for specific operations.
+
+- Flask: The main class for my application. It's where my app is configured and ties together routes and other application components.
+    - Blueprint: Allows for modularisation of Flask applications by grouping routes, error handlers, and other functionalities into reusable components.
+    - request, g, abort, jsonify: Utilities for handling HTTP requests, storing global variables (I use this in a decorator to verify the current user), aborting requests with HTTP error codes, and JSON-ifying response data (used to return errors in JSON)
+
+- flask_jwt_extended:
+    - jwt_required, get_jwt_identity, create_access_token: Decorators and functions I used to protect routes with JWT authentication, retrieving identities of the current user from a JWT, and generating access tokens.
+- Marshmallow: Used for object serialisation and deserialisation, validation, and transformation to and from various formats (I use JSON). Simplifies data handling.
+    - Schema, fields, validates, ValidationError: Components used for defining schemas, field types, validation logic, and handling validation errors.
+    - Length, Regexp, OneOf, Range: Validators used for imposing length constraints, regex patterns, choice constraints, and numeric ranges on fields.
+
+- python-dotenv: uses a .env file to manage app environment variables (DATABASE URI, JWT_SECRET_KEY). 
+
+### 8 - Describe your projects models in terms of the relationships they have with each other
+
+- User Model
+```python
+__tablename__ = "users"
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, nullable=False)
+    email = db.Column(db.String, nullable=False, unique=True)
+    password = db.Column(db.String, nullable=False)
+    phone = db.Column(db.String, nullable=False, unique=True)
+    is_admin = db.Column(db.Boolean, default=False)
+    booking_attempts = db.Column(db.Integer, default=0)
+    is_locked = db.Column(db.Boolean, default=False)
+    
+    bookings = db.relationship('Booking', back_populates='user', cascade='all, delete')
+    reviews = db.relationship('Review', back_populates='user', cascade='all, delete')
+```
+
+Represents individuals who use my application. Users can make bookings for attractions and leave reviews.
+- user to bookings: A one-to-many relationship with the Booking model. A single user can make multiple bookings, but each booking is made by one user.
+- user to reviews: A one-to-many relationship with the Review model. A user can leave multiple reviews for different attractions, but each review is by one user.
+
+- Attraction Model
+```python
+__tablename__ = "attractions"
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, nullable=False, unique=True)
+    ticket_price = db.Column(db.Float, nullable=False)
+    description = db.Column(db.String, nullable=False)
+    location = db.Column(db.String, nullable=False)
+    contact_phone = db.Column(db.String, nullable=False)
+    contact_email = db.Column(db.String, nullable=False)
+    opening_hours = db.Column(db.String, nullable=False)
+    available_slots = db.Column(db.Integer, nullable=False)
+
+    bookings = db.relationship('Booking', back_populates='attraction', cascade='all, delete')
+    reviews = db.relationship('Review', back_populates='attraction', cascade='all, delete')
+
+```
+- Represents attractions that users can book and review.
+- bookings: A one-to-many relationship with the Booking model. An attraction can have many bookings made by users, but each booking is for a single attraction.
+- reviews: A one-to-many relationship with the Review model. Attractions can have multiple reviews, each reflecting a user's experience.
+
+- Booking Model
+```python
+ __tablename__ = "bookings"
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    attraction_id = db.Column(db.Integer, db.ForeignKey('attractions.id'), nullable=False)
+    booking_date = db.Column(db.DateTime, nullable=False)
+    number_of_guests = db.Column(db.Integer, nullable=False)
+    total_cost = db.Column(db.Float)
+    status = db.Column(db.String, nullable=False, default=booking_status.REQUESTED)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+```
+- Represents a reservation made by a user for an attraction on a specific date.
+
+users: Links a booking to the user who made it. Establishes the many-to-one relationship back to the User model.
+attractions: Links the booking to the specific attraction booked. Establishes the many-to-one relationship back to the Attraction model.
+
+Review Model
+```python
+ __tablename__ = "reviews"
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    attraction_id = db.Column(db.Integer, db.ForeignKey('attractions.id'), nullable=False)
+    rating = db.Column(db.Integer, nullable=False)
+    comment = db.Column(db.String, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', back_populates='reviews')  
+    attraction = db.relationship('Attraction', back_populates='reviews')
+```
+- Represents user reviews of attractions, capturing their experience and rating.
+- users Links to the user who left the review, establising the many-to-one relationship with the User model.
+- attractions: Links to the attraction being reviewed, creating a many-to-one relationship with the Attraction model.
 
 ### 9 - Discuss the database relations to be implemented in your application
 
+#### User Table
+- id: Primary key, a unique identifier for each user.
+- name: The user's full name.
+- email: The user's email address, used for account identification and communication. Unique to ensure no two users can register with the same email.
+- password: The user's hashed password, used for authentication.
+- phone: The user's phone number, potentially used for notifications or account recovery. Also must be unique.
+- is_admin: A boolean flag indicating whether the user is an admin.
+- booking_attempts: Tracks the number of booking attempts a user makes for limiting transactions for fraud prevention purposes.
+- is_locked: A boolean flag indicates if the user's account is locked (due to security limitations.)
+#### User Relationships
+<b>Users and Bookings</b>
+- One-to-Many: A User can make multiple Bookings. Represented by a foreign key in the Booking table (user_id) that references the id column of the User table. It signifies that each booking is made by one user, but a user can have many bookings over time. <br>
+
+<b>Users and Reviews</b>
+- One-to-Many: A User can leave multiple Reviews, one for each Attraction they wish to review. Has a foreign key in the Review table (user_id) pointing to the User table's id column. This allows the application to track which user left which review.
+
+#### Attraction Table
+- id: Primary key, a unique identifier for each attraction.
+- name: The name of the attraction (must be unique).
+- ticket_price: The price of admission to the attraction per unit.
+- description: A description of the attraction.
+- location: The location of the attraction.
+- contact_phone: A contact phone number for the attraction.
+- contact_email: A contact email address for the attraction.
+- opening_hours: The hours during which the attraction is open to visitors.
+- available_slots: The number of available slots or tickets for the attraction.
+#### Relationships
+<b>Attractions and Bookings</b>
+- One-to-Many: Each Attraction can have many Bookings. An attraction can be visited by many people, each of whom may make a booking. The Booking table has a foreign key (attraction_id) that references the id of the Attraction table, linking each booking to a specific attraction.<br>
+
+<b>Attractions and Reviews</b>
+- One-to-Many: An Attraction can have many Reviews from different users. Like bookings, the Review table contains a foreign key (attraction_id) that references the Attraction table's id, connecting each review to the attraction it assesses.
+
+#### Booking Table
+- id: Primary key, a unique identifier for each booking.
+- user_id: Foreign key linking to the User table, identifies who made the booking.
+- attraction_id: Foreign key linking to the Attraction table, identifies which attraction is booked.
+- booking_date: The date for which the booking is made.
+- number_of_guests: How many guests the booking is for.
+- total_cost: The total cost of the booking, calculated as number_of_guests * ticket_price.
+- status: The status of the booking (e.g., Requested, Confirmed, Cancelled).
+- created_at: Timestamp indicating when the booking was created.
+#### Review Table
+- id: Primary key, a unique identifier for each review.
+- user_id: Foreign key linking to the User table, identifies the review owner.
+- attraction_id: Foreign key linking to the Attraction table, identifies which attraction is being reviewed.
+- rating: The rating given to the attraction by the user.
+- comment: The user's written review of the attraction.
+- created_at: Timestamp indicating when the review was posted.
+
+<b>Relationship Flow</b><br>
+- User-Booking-Attraction: The process of a user booking an attraction. The User table is linked to the Booking table via user_id, and the Booking table is further linked to the Attraction table via attraction_id. This captures the information that a specific user has booked a specific attraction for a certain date.
+
+- User-Review-Attraction: The process of a user leaving a review. A user (User table) who has visited an attraction can leave a review (Review table) for that attraction, which is captured by linking the User table to the Review table via user_id, and the Review table to the Attraction table via attraction_id. This enables the application to display reviews for each attraction and attribute them to the correct user.
+
 ### 10 - Describe the way tasks are allocated and tracked in your project
+
+### Software Development Plan
+My Software Development plan was created in ASANA.
+I broke my tasks down in a similar way to how we created our app in class.
+
+Starting with setup - ERD, initialisation, configs, then creating and testing a model before moving onto the next.
+
+I broke each main task down into subtasks I could tick off and each had a different due date.
+
+I also have the app on my computer so I get regular notifications on what is coming up, what is due, and tasks still to be completed.
+
+![Plan page 1](./docs/images/asana1.png)
+![Plan page 2](./docs/images/asana2.png)
+![Plan page 3](./docs/images/asana3.png)
 
 ### Resources
 
