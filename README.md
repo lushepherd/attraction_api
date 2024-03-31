@@ -52,25 +52,26 @@
 3. Create a .env file based on the provided .env.sample file in the src folder.
 4. Create and activate a virtual environment 
 ```
-python3 -m venv .venv && source .venv/bin/activate
+python3 -m venv .venv
+
+source .venv/bin/activate
 ```
 5. Install dependencies from requirements.txt
 ```
 pip3 install -r requirements.txt
 ```
-6. Start the Flask server
-```
-flask run
-```
-7. Create tables
+6. Create tables
 ```
 flask db create
 ```
-8. Seed tables
+7. Seed tables
 ```
 flask db seed
 ```
-
+8. Start the Flask server
+```
+flask run
+```
 For further instructions on usage, please navigate to [Endpoints](#5---document-all-endpoints-for-your-api) below.
 
 ### 1 - Identification of the problem you are trying to solve by building this particular app.
