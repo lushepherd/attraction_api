@@ -42,4 +42,5 @@ def exceeded_booking_cost_limit(user_id, cost_limit=2500):
     total_cost = db.session.query(db.func.sum(Booking.total_cost))\
                 .filter(Booking.user_id == user_id, Booking.created_at >= threshold_time)\
                 .scalar() or 0
+    print(f"Total cost calculated for user {user_id} in the last 24 hours: {total_cost}")
     return total_cost >= cost_limit

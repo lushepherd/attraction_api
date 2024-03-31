@@ -18,7 +18,7 @@ def insufficient_slots_error():
     Helper function to abort the request with a custom error message
     when there are not enough available slots for a booking.
     """
-    abort(jsonify(message= "Not enough available slots for this booking.")), 400
+    return {'error': f'"Not enough available slots for this booking.'}, 400
 
 def check_attraction_slots(attraction_id, required_slots):
     """
@@ -81,7 +81,7 @@ def create_booking_logic(user_id, data, bypass_limits_for_admin=False):
     today = datetime.utcnow().date()
     max_booking_date = today + timedelta(days=180)
     if booking_date.date() < today or booking_date.date() > max_booking_date:
-        abort(jsonify(message="Booking date out of allowed range.")), 400
+        abort(jsonify(message="Booking date out of allowed range."), 400)
 
     # Validates the attraction, checks availability for booking request
     attraction = Attraction.query.get(attraction_id)
@@ -105,9 +105,12 @@ def create_booking_logic(user_id, data, bypass_limits_for_admin=False):
     if booking.total_cost >= 1000 and not bypass_limits_for_admin:
         abort(jsonify(message="Bookings over $1000 require admin permission."), 403)
 
-    attraction.available_slots -= booking.number_of_guests
-    db.session.add(booking)
-    db.session.commit()
+    available, _ = check_attraction_slots(attraction_id, number_of_guests)
+    if not available:
+        abort(jsonify(message="Not enough available slots for this booking."), 400)
+    else:
+        db.session.add(booking)
+        db.session.commit()
 
     return booking
 
