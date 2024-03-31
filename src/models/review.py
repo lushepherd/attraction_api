@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from marshmallow import Schema, fields, validates, ValidationError
+from marshmallow.validate import Length
 
 from init import db
 
@@ -11,18 +12,17 @@ class Review(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     attraction_id = db.Column(db.Integer, db.ForeignKey('attractions.id'), nullable=False)
     rating = db.Column(db.Integer, nullable=False)
-    comment = db.Column(db.String(255), nullable=True)
+    comment = db.Column(db.String, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    user = db.relationship('User', back_populates='reviews', cascade='all, delete')  
-    attraction = db.relationship('Attraction', back_populates='reviews', cascade='all, delete')
+    user = db.relationship('User', back_populates='reviews')  
+    attraction = db.relationship('Attraction', back_populates='reviews')
     
 class ReviewSchema(Schema):
-    id = fields.Int(dump_only=True)
     user = fields.Nested('UserSchema', only=('name',), dump_only=True)
     attraction = fields.Nested('AttractionSchema', only=('name',))
     rating = fields.Int(required=True, validate=lambda n: 0 <= n <= 10)
-    comment = fields.Str(allow_none=True)
+    comment = fields.String(validate=Length(max=100, error="Exceeds 100 character limit."))
     created_at = fields.DateTime('%d/%m/%Y')
 
     @validates('rating')

@@ -35,7 +35,7 @@ class UserSchema(ma.Schema):
     password = fields.String(validate=Length(min=8, error="Password must be at least 8 characters long."))
 
     bookings = fields.List(fields.Nested('BookingSchema', exclude=['user']))
-    reviews = fields.List(fields.Nested('ReviewSchema', only=('attraction', 'rating', 'comment', 'created_at')))
+    reviews = fields.List(fields.Nested('ReviewSchema'))
     
     is_locked_out = fields.Method("get_lockout_status")
     

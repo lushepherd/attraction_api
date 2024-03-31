@@ -31,7 +31,7 @@ class Attraction(db.Model):
     )
     
 class AttractionSchema(ma.Schema):
-    reviews = fields.List(fields.Nested('ReviewSchema', exclude=['attraction', 'id']))
+    reviews = fields.List(fields.Nested('ReviewSchema', exclude=['attraction',]))
     average_rating = fields.Method("get_average_rating")
     description = fields.String(validate=Length(max=200, error="Maximum of 200 characters."))
     contact_email = fields.Email()

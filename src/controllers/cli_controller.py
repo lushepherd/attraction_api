@@ -32,7 +32,7 @@ def seed_tables():
         ),
         User(
             name="User One",
-            email="userone@email.com",
+            email="user1@email.com",
             password=bcrypt.generate_password_hash('password').decode('utf-8'),
             phone="0466666666",
             is_admin=False
@@ -43,23 +43,23 @@ def seed_tables():
     
     attractions = [
         Attraction(
-            name="The Great Wall of China",
-            ticket_price=150,
-            description="Built to protect the Chinese states against invasions",
-            location="China",
-            contact_phone="0456789011",
-            contact_email="greatwall@email.com",
-            opening_hours="09:00 - 17:00",
-            available_slots=500
+            name="The Wheel of Brisbane",
+            ticket_price=40,
+            description="Iconic landmark on South Bank.",
+            location="Brisbane",
+            contact_phone="0756789011",
+            contact_email="brisbanewheel@email.com",
+            opening_hours="10:00 - 21:00",
+            available_slots=30
         ),
         Attraction(
-            name="The Colosseum",
+            name="Story Bridge Adventure Climb",
             ticket_price=70,
-            description="Oval amphitheatre in the centre of Rome, Italy.",
-            location="Rome, Italy",
-            contact_phone="0456733331",
-            contact_email="colosseum@email.com",
-            opening_hours="10:00 - 23:00",
+            description="Panoramic group walks in safety harnesses across Brisbane's cantilever bridge.",
+            location="Brisbane",
+            contact_phone="0755736631",
+            contact_email="brisbanebridge@email.com",
+            opening_hours="06:00 - 15:00",
             available_slots=100
         )
     ]
@@ -70,13 +70,13 @@ def seed_tables():
         Booking(
             user=users[1],
             attraction=attractions[0],  
-            booking_date=datetime(2024, 5, 20),
+            booking_date=datetime(2023, 5, 20),
             number_of_guests=2,
-            total_cost=300,
+            total_cost=80,
             status=booking_status.CONFIRMED
         ),
         Booking(
-            user=users[1],
+            user=users[0],
             attraction=attractions[1],  
             booking_date=datetime(2024, 7, 25),
             number_of_guests=4,
